@@ -24,10 +24,11 @@ function Get-AllSecurityGroups {
     Write-IntuneToolkitLog "Starting Get-AllSecurityGroups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
     try {
         $url = "https://graph.microsoft.com/beta/groups"
-        Write-IntuneToolkitLog "Fetching security groups from $url" -component "Get-AllSecurityGroups" -file "Functions.ps1"
-        $groups = Invoke-MgGraphRequest -Uri $url -Method GET -Headers @{ 'ConsistencyLevel' = 'eventual' }
-        Write-IntuneToolkitLog "Successfully fetched security groups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
-        return $groups.value | Select-Object Id, DisplayName
+        Write-IntuneToolkitLog "Fetching all security groups with pagination from $url" -component "Get-AllSecurityGroups" -file "Functions.ps1"
+        $allGroups = Get-GraphData -url $url
+        $formattedGroups = $allGroups | Select-Object Id, DisplayName
+        Write-IntuneToolkitLog "Successfully fetched all security groups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
+        return $formattedGroups
     } catch {
         $errorMessage = "Failed to get all security groups: $($_.Exception.Message)"
         Write-Error $errorMessage
@@ -40,15 +41,16 @@ function Get-AllAssignmentFilters {
     Write-IntuneToolkitLog "Starting Get-AllAssignmentFilters" -component "Get-AllAssignmentFilters" -file "Functions.ps1"
     try {
         $url = "https://graph.microsoft.com/beta/deviceManagement/assignmentFilters"
-        Write-IntuneToolkitLog "Fetching assignment filters from $url" -component "Get-AllAssignmentFilters" -file "Functions.ps1"
-        $filters = Invoke-MgGraphRequest -Uri $url -Method GET
-        Write-IntuneToolkitLog "Successfully fetched assignment filters" -component "Get-AllAssignmentFilters" -file "Functions.ps1"
-        return $filters.value | ForEach-Object {
+        Write-IntuneToolkitLog "Fetching all assignment filters with pagination from $url" -component "Get-AllAssignmentFilters" -file "Functions.ps1"
+        $allFilters = Get-GraphData -url $url
+        $formattedFilters = $allFilters | ForEach-Object {
             [PSCustomObject]@{
                 Id = $_.id
                 DisplayName = $_.displayName
             }
         }
+        Write-IntuneToolkitLog "Successfully fetched all assignment filters" -component "Get-AllAssignmentFilters" -file "Functions.ps1"
+        return $formattedFilters
     } catch {
         $errorMessage = "Failed to get all assignment filters: $($_.Exception.Message)"
         Write-Error $errorMessage
