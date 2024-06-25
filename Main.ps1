@@ -89,6 +89,8 @@ function Show-Window {
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
         $global:CurrentPolicyType = ""
 
+        Get-ChildItem -Path ".\Scripts" -Recurse | Unblock-File
+
         # Import external script files
         . .\Scripts\Functions.ps1
         . .\Scripts\ConnectButton.ps1
