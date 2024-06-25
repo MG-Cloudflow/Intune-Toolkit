@@ -20,7 +20,7 @@ $ConnectButton.Add_Click({
         Write-IntuneToolkitLog "Starting connection to Microsoft Graph" -component "Connect-Button" -file "ConnectButton.ps1"
         
         # Connect to Microsoft Graph
-        Connect-MgGraph -Scopes "User.Read.All", "Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All"
+        Connect-MgGraph -Scopes "User.Read.All", "Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All, DeviceManagementApps.ReadWrite.All"
         Write-IntuneToolkitLog "Successfully connected to Microsoft Graph" -component "Connect-Button" -file "ConnectButton.ps1"
 
         # Get tenant information
