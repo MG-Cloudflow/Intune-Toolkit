@@ -97,7 +97,24 @@ $AddAssignmentButton.Add_Click({
                         $bodyObject = @{
                             mobileAppAssignments = $assignments
                         }
-                    } else {
+                    } elseif ($global:CurrentPolicyType -eq "deviceManagementScripts") {
+                        $newAssignment = @{
+                            target = @{
+                                '@odata.type' = $targetType
+                                groupId = $selection.Group.Tag
+                            }
+                        }
+                        if ($selection.Filter) {
+                            $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $selection.Filter.Tag
+                            $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $selection.FilterType
+                        }
+                        $assignments += $newAssignment
+
+                        # Create the body object
+                        $bodyObject = @{
+                            deviceManagementScriptAssignments = $assignments
+                        }
+                    }else {
                         $newAssignment = @{
                             target = @{
                                 '@odata.type' = $targetType

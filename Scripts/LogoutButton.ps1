@@ -37,11 +37,14 @@ $LogoutButton.Add_Click({
         $ComplianceButton.IsEnabled = $false
         $AdminTemplatesButton.IsEnabled = $false
         $ApplicationsButton.IsEnabled = $false
+        $RemediationScriptsButton.IsEnabled = $false
+        $PlatformScriptsButton.IsEnabled = $false
         $ConnectButton.IsEnabled = $true
         $LogoutButton.IsEnabled = $false
         $SearchFieldComboBox.IsEnabled = $false
         $SearchBox.IsEnabled = $false
         $SearchButton.IsEnabled = $false
+        $ExportToCSVButton.IsEnabled = $false
 
         Write-IntuneToolkitLog "UI elements reset successfully" -component "Logout-Button" -file "LogoutButton.ps1"
         
