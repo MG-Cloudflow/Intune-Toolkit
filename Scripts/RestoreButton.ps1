@@ -50,6 +50,10 @@ $RestoreButton.Add_Click({
                     $bodyObject = @{
                         mobileAppAssignments = $policy.assignments
                     }
+                } elseif($global:CurrentPolicyType -eq "deviceManagementScripts") {
+                    $bodyObject = @{
+                        deviceManagementScriptAssignments = $policy.assignments
+                    }
                 } else {
                     $bodyObject = @{
                         assignments = $policy.assignments

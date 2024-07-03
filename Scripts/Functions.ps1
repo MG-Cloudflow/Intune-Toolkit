@@ -120,7 +120,7 @@ function Reload-Grid {
     # Initialize the global variable as an array
     $global:AllPolicyData = @()
     foreach ($policy in $result) {
-        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations") {
+        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
                     $groupDisplayName = if ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) { $groupLookup[$assignment.target.groupId] } else { "" }
@@ -211,6 +211,8 @@ function Load-PolicyData {
     $ComplianceButton.IsEnabled = $false
     $AdminTemplatesButton.IsEnabled = $false
     $ApplicationsButton.IsEnabled = $false
+    $RemediationScriptsButton.IsEnabled = $false
+    $PlatformScriptsButton.IsEnabled = $false
     $DeleteAssignmentButton.IsEnabled = $false
     $AddAssignmentButton.IsEnabled = $false
     $BackupButton.IsEnabled = $false
@@ -218,19 +220,28 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $false
     $SearchBox.IsEnabled = $false
     $SearchButton.IsEnabled = $false
+    $ExportToCSVButton.IsEnabled = $false
 
     # Load data synchronously
     $result = Reload-Grid -type $policyType
-
     # Update the DataGrid with the loaded data
     $PolicyDataGrid.ItemsSource = @($result)
     $PolicyDataGrid.Items.Refresh()
+
+    $InstallIntentColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Install Intent" }
+    if ($policyType -eq "mobileApps") {
+        $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Visible
+    } else {
+        $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Collapsed
+    }
     $StatusText.Text = $loadedMessage
     $ConfigurationPoliciesButton.IsEnabled = $true
     $DeviceConfigurationButton.IsEnabled = $true
     $ComplianceButton.IsEnabled = $true
     $AdminTemplatesButton.IsEnabled = $true
     $ApplicationsButton.IsEnabled = $true
+    #$RemediationScriptsButton.IsEnabled = $true
+    $PlatformScriptsButton.IsEnabled = $true
     $DeleteAssignmentButton.IsEnabled = $true
     $AddAssignmentButton.IsEnabled = $true
     $BackupButton.IsEnabled = $true
@@ -238,4 +249,5 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $true
     $SearchBox.IsEnabled = $true
     $SearchButton.IsEnabled = $true
+    $ExportToCSVButton.IsEnabled = $true
 }

@@ -79,7 +79,7 @@ function Show-SelectionDialog {
         $GroupComboBox.Items.Clear()
         $searchText = $GroupSearchBox.Text.ToLower()
         foreach ($group in $groups) {
-            if ($group.DisplayName.ToLower().Contains($searchText)) {
+            if ($group.DisplayName -and $group.DisplayName.ToLower().Contains($searchText)) {
                 $comboBoxItem = New-Object Windows.Controls.ComboBoxItem
                 $comboBoxItem.Content = $group.DisplayName
                 $comboBoxItem.Tag = $group.Id
@@ -97,13 +97,17 @@ function Show-SelectionDialog {
         Refresh-GroupComboBox
     })
 
-    foreach ($filter in $filters) {
-        $comboBoxItem = New-Object Windows.Controls.ComboBoxItem
-        $comboBoxItem.Content = $filter.displayName
-        $comboBoxItem.Tag = $filter.id
-        $FilterComboBox.Items.Add($comboBoxItem)
+    if ($null -ne $filters) {
+        foreach ($filter in $filters) {
+            $comboBoxItem = New-Object Windows.Controls.ComboBoxItem
+            $comboBoxItem.Content = $filter.displayName
+            $comboBoxItem.Tag = $filter.id
+            $FilterComboBox.Items.Add($comboBoxItem)
+        }
+        Write-IntuneToolkitLog "Populated filter combo box" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+    } else {
+        Write-IntuneToolkitLog "No filters available to populate filter combo box" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
     }
-    Write-IntuneToolkitLog "Populated filter combo box" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
 
     # Add include and exclude options to the FilterTypeComboBox
     $includeItem = New-Object Windows.Controls.ComboBoxItem

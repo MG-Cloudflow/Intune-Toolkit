@@ -63,7 +63,11 @@ $DeleteAssignmentButton.Add_Click({
                     $bodyObject = @{
                         mobileAppAssignments = $updatedAssignments
                     }
-                } else {
+                }elseif($global:CurrentPolicyType -eq "deviceManagementScripts") {
+                    $bodyObject = @{
+                        deviceManagementScriptAssignments = $updatedAssignments
+                    }
+                }else {
                     $bodyObject = @{
                         assignments = $updatedAssignments
                     }
