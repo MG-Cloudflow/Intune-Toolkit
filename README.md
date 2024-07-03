@@ -17,13 +17,29 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Device Compliance Policies
   - Mobile Applications
   - Administrative Templates
+  - Platform Scripts
 - **Assignment Management:**
   - Add and delete assignments for selected policies.
   - Search Security Groups.
   - Support for filters and installation intent.
 - **Backup and Restore:**
   - Back up and restore assignments to policies and apps.
+- **Export Assignments:**
+  - Export assignments to CSV
 - **Logging:** Detailed logging for all major actions and error handling.
+
+## Release Notes
+- **v0.1.1-alpha**
+  -Features
+    -Platform scripts
+    -Export To CSV
+  -UI
+    -Updated UI
+    -Remove install intent column in policy Context
+  -Bug Fixes
+    -Build in safety when no filters Exists
+    -Checks for MS Graph Module
+
 
 ## Prerequisites
 
