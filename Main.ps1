@@ -54,6 +54,14 @@ try {
     exit 1
 }
 
+# Check if Microsoft.Graph module is installed
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
+    [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    Write-IntuneToolkitLog $errorMessage
+    exit 1
+}
+
 # Function to display the main window
 function Show-Window {
     Write-IntuneToolkitLog "Starting Show-Window"
@@ -79,11 +87,14 @@ function Show-Window {
         $AddAssignmentButton = $Window.FindName("AddAssignmentButton")
         $BackupButton = $Window.FindName("BackupButton")
         $RestoreButton = $Window.FindName("RestoreButton")
+        $ExportToCSVButton = $Window.FindName("ExportToCSVButton")
         $ConfigurationPoliciesButton = $Window.FindName("ConfigurationPoliciesButton")
         $DeviceConfigurationButton = $Window.FindName("DeviceConfigurationButton")
         $ComplianceButton = $Window.FindName("ComplianceButton")
         $AdminTemplatesButton = $Window.FindName("AdminTemplatesButton")
         $ApplicationsButton = $Window.FindName("ApplicationsButton")
+        $RemediationScriptsButton = $Window.FindName("RemediationScriptsButton")
+        $PlatformScriptsButton = $Window.FindName("PlatformScriptsButton")
         $SearchBox = $Window.FindName("SearchBox")
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
@@ -104,8 +115,11 @@ function Show-Window {
         . .\Scripts\AddAssignmentButton.ps1
         . .\Scripts\BackupButton.ps1
         . .\Scripts\RestoreButton.ps1
+        . .\Scripts\ExportToCSVButton.ps1
         . .\Scripts\Show-SelectionDialog.ps1
         . .\Scripts\SearchButton.ps1
+        . .\Scripts\RemediationScriptsButton.ps1
+        . .\Scripts\PlatformScriptsButton.ps1
 
         Write-IntuneToolkitLog "Successfully imported external scripts"
 
