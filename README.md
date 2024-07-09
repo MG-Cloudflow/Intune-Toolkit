@@ -39,6 +39,8 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Mac OS Scripts
   - App Configuration Policies
   - Document To markdown
+    - Selected Policies / applications
+    - Bulk Export of Policy Type
   - Basic Version Check to latest Release Version on Github
 - **Bug Fixes**
   - Build in safety when no filters Exists ( Second Attempt ;-) )
