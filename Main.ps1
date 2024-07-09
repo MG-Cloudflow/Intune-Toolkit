@@ -9,13 +9,15 @@ and logging are implemented to catch and log errors during these processes.
 
 .NOTES
 Author: Maxime Guillemin | CloudFlow
-Date: 21/06/2024
+Date: 09/07/2024
+
 
 .EXAMPLE
 Show-Window
 Displays the main window of the application.
 #>
 
+$currentVersion = "v0.2.0-alpha"
 # Define the log file path
 $logFile = ".\IntuneToolkit.log"
 
@@ -88,13 +90,16 @@ function Show-Window {
         $BackupButton = $Window.FindName("BackupButton")
         $RestoreButton = $Window.FindName("RestoreButton")
         $ExportToCSVButton = $Window.FindName("ExportToCSVButton")
+        $ExportToMDButton = $Window.FindName("ExportToMDButton")
         $ConfigurationPoliciesButton = $Window.FindName("ConfigurationPoliciesButton")
         $DeviceConfigurationButton = $Window.FindName("DeviceConfigurationButton")
         $ComplianceButton = $Window.FindName("ComplianceButton")
         $AdminTemplatesButton = $Window.FindName("AdminTemplatesButton")
         $ApplicationsButton = $Window.FindName("ApplicationsButton")
+        $AppConfigButton = $Window.FindName("AppConfigButton")
         $RemediationScriptsButton = $Window.FindName("RemediationScriptsButton")
         $PlatformScriptsButton = $Window.FindName("PlatformScriptsButton")
+        $MacosScriptsButton = $Window.FindName("MacosScriptsButton")
         $SearchBox = $Window.FindName("SearchBox")
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
@@ -116,10 +121,17 @@ function Show-Window {
         . .\Scripts\BackupButton.ps1
         . .\Scripts\RestoreButton.ps1
         . .\Scripts\ExportToCSVButton.ps1
+        . .\Scripts\ExportToMDButton.ps1
         . .\Scripts\Show-SelectionDialog.ps1
         . .\Scripts\SearchButton.ps1
         . .\Scripts\RemediationScriptsButton.ps1
         . .\Scripts\PlatformScriptsButton.ps1
+        . .\Scripts\AppConfigButton.ps1
+        . .\Scripts\MacosScriptsButton.ps1
+        # Check for the latest version
+        . .\Scripts\CheckVersion.ps1
+
+        Check-LatestVersion -currentVersion $currentVersion
 
         Write-IntuneToolkitLog "Successfully imported external scripts"
 
