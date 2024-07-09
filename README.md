@@ -29,6 +29,8 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 - **Export Assignments:**
   - Export assignments to CSV
   - Document Assignments to Markdown File
+    - Selected Policies / applications
+    - Bulk Export of Policy Type
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Release Notes
