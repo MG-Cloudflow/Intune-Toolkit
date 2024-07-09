@@ -39,7 +39,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Document To markdown
   - Basic Version Check to latest Release Version on Github
 - **Bug Fixes**
-  -Build in safety when no filters Exists ( Second Attempt ;-) )
+  - Build in safety when no filters Exists ( Second Attempt ;-) )
 # v0.1.1-alpha
 - **Features**
   - Platform scripts
