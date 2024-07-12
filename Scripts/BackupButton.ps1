@@ -24,7 +24,9 @@ $BackupButton.Add_Click({
         # Determine the policy type from the global variable
         if ($global:CurrentPolicyType -eq "mobileApps") {
             $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)?`$filter=(microsoft.graph.managedApp/appAvailability%20eq%20null%20or%20microsoft.graph.managedApp/appAvailability%20eq%20%27lineOfBusiness%27%20or%20isAssigned%20eq%20true)&`$orderby=displayName&`$expand=assignments"
-        } else {
+        } elseif ($global:CurrentPolicyType -eq "mobileAppConfigurations") {
+            $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)?`$expand=assignments"
+        }else {
             $url = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)?`$expand=assignments"
         }
         Write-IntuneToolkitLog "Determined policy type: $($global:CurrentPolicyType)" -component "Backup-Button" -file "BackupButton.ps1"

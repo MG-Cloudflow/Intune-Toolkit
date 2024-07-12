@@ -8,9 +8,8 @@ It allows the user to select a backup file, reads and parses the file, and updat
 assignments for each policy in the backup. The script includes error handling and logging
 for all major actions.
 
-.NOTES
-Author: Author: Maxime Guillemin | CloudFlow
-Date: 21/06/2024
+Author: Maxime Guillemin | CloudFlow
+Date: 09/07/2024
 
 .EXAMPLE
 $RestoreButton.Add_Click({
@@ -50,11 +49,11 @@ $RestoreButton.Add_Click({
                     $bodyObject = @{
                         mobileAppAssignments = $policy.assignments
                     }
-                } elseif($global:CurrentPolicyType -eq "deviceManagementScripts") {
+                } elseif($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts") {
                     $bodyObject = @{
                         deviceManagementScriptAssignments = $policy.assignments
                     }
-                } else {
+                }else {
                     $bodyObject = @{
                         assignments = $policy.assignments
                     }
@@ -66,7 +65,7 @@ $RestoreButton.Add_Click({
 
                 # Update the assignments for the policy
                 if ($policyType -eq "mobileApps") {
-                    $UrlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/$($policy.id)/assign"
+                    $UrlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($policyType)/$($policy.id)/assign"
                 } else {
                     $UrlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($policyType)/$($policy.id)/assign"
                 }

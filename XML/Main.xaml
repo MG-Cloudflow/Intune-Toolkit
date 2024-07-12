@@ -68,8 +68,10 @@
             <Button x:Name="ComplianceButton" Content="Compliance" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="AdminTemplatesButton" Content="Administrative Templates" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="ApplicationsButton" Content="Applications" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="AppConfigButton" Content="App configuration policies" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="PlatformScriptsButton" Content="Platform Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="RemediationScriptsButton" Content="Remediation Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="MacosScriptsButton" Content="Mac OS Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
         </StackPanel>
         <StackPanel Orientation="Vertical" Grid.Column="0" Grid.Row="0" Margin="10">
             <Button x:Name="ConnectButton" Content="Connect to Graph" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>
@@ -113,6 +115,7 @@
             <Button x:Name="BackupButton" Content="Backup" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             <Button x:Name="RestoreButton" Content="Restore Assignments" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ExportToMDButton" Content="Export to MD" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
         </StackPanel>
     </Grid>
 </Window>

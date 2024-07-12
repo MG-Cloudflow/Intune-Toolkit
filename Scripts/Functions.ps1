@@ -9,7 +9,8 @@ reloading grid data, and loading policy data. Error handling and logging are imp
 
 .NOTES
 Author: Maxime Guillemin | CloudFlow
-Date: 21/06/2024
+Date: 09/07/2024
+
 
 .EXAMPLE
 $groups = Get-AllSecurityGroups
@@ -96,6 +97,8 @@ function Reload-Grid {
 
     if ($type -eq "mobileApps") {
         $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($type)?`$filter=(microsoft.graph.managedApp/appAvailability%20eq%20null%20or%20microsoft.graph.managedApp/appAvailability%20eq%20%27lineOfBusiness%27%20or%20isAssigned%20eq%20true)&`$orderby=displayName&`$expand=assignments"
+    } elseif ($type -eq "mobileAppConfigurations") {
+        $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($type)?`$expand=assignments"
     } else {
         $url = "https://graph.microsoft.com/beta/deviceManagement/$($type)?`$expand=assignments"
     }
@@ -120,7 +123,7 @@ function Reload-Grid {
     # Initialize the global variable as an array
     $global:AllPolicyData = @()
     foreach ($policy in $result) {
-        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies") {
+        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
                     $groupDisplayName = if ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) { $groupLookup[$assignment.target.groupId] } else { "" }
@@ -211,8 +214,10 @@ function Load-PolicyData {
     $ComplianceButton.IsEnabled = $false
     $AdminTemplatesButton.IsEnabled = $false
     $ApplicationsButton.IsEnabled = $false
+    $AppConfigButton.IsEnabled = $false
     $RemediationScriptsButton.IsEnabled = $false
     $PlatformScriptsButton.IsEnabled = $false
+    $MacosScriptsButton.IsEnabled = $false
     $DeleteAssignmentButton.IsEnabled = $false
     $AddAssignmentButton.IsEnabled = $false
     $BackupButton.IsEnabled = $false
@@ -221,6 +226,7 @@ function Load-PolicyData {
     $SearchBox.IsEnabled = $false
     $SearchButton.IsEnabled = $false
     $ExportToCSVButton.IsEnabled = $false
+    $ExportToMDButton.IsEnabled = $false
 
     # Load data synchronously
     $result = Reload-Grid -type $policyType
@@ -240,8 +246,10 @@ function Load-PolicyData {
     $ComplianceButton.IsEnabled = $true
     $AdminTemplatesButton.IsEnabled = $true
     $ApplicationsButton.IsEnabled = $true
+    $AppConfigButton.IsEnabled = $true
     #$RemediationScriptsButton.IsEnabled = $true
     $PlatformScriptsButton.IsEnabled = $true
+    $MacosScriptsButton.IsEnabled = $true
     $DeleteAssignmentButton.IsEnabled = $true
     $AddAssignmentButton.IsEnabled = $true
     $BackupButton.IsEnabled = $true
@@ -250,4 +258,5 @@ function Load-PolicyData {
     $SearchBox.IsEnabled = $true
     $SearchButton.IsEnabled = $true
     $ExportToCSVButton.IsEnabled = $true
+    $ExportToMDButton.IsEnabled = $true
 }

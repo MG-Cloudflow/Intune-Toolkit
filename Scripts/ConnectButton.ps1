@@ -45,6 +45,8 @@ $ConnectButton.Add_Click({
         $ComplianceButton.IsEnabled = $true
         $AdminTemplatesButton.IsEnabled = $true
         $ApplicationsButton.IsEnabled = $true
+        $AppConfigButton.IsEnabled = $true
+        $MacosScriptsButton.IsEnabled = $true
         #$RemediationScriptsButton.IsEnabled = $true
         $PlatformScriptsButton.IsEnabled = $true
         $ConnectButton.IsEnabled = $false
@@ -53,6 +55,7 @@ $ConnectButton.Add_Click({
         $SearchBox.IsEnabled = $true
         $SearchButton.IsEnabled = $true
         $ExportToCSVButton.IsEnabled = $true
+        $ExportToMDButton.IsEnabled = $true
 
         Write-IntuneToolkitLog "UI elements updated successfully" -component "Connect-Button" -file "ConnectButton.ps1"
 

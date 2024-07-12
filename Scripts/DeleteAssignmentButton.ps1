@@ -8,7 +8,8 @@ It retrieves the current assignments, filters out the selected assignment, and u
 
 .NOTES
 Author: Maxime Guillemin | CloudFlow
-Date: 21/06/2024
+Date: 09/07/2024
+
 .EXAMPLE
 $DeleteAssignmentButton.Add_Click({
     # Code to handle click event
@@ -27,13 +28,14 @@ $DeleteAssignmentButton.Add_Click({
                 Write-IntuneToolkitLog "Processing selected policy: $($selectedPolicy.PolicyId)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
                 # Get current assignments
-                if ($global:CurrentPolicyType -eq "mobileApps") {
-                    $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/$($selectedPolicy.PolicyId)/assignments"
+                if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType  -eq "mobileAppConfigurations") {
+                    $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
+                    $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
                 } else {
-                    $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)/$($selectedPolicy.PolicyId)/assignments"
+                    $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
+                    $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
                 }
                 Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
-                $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
                 Write-IntuneToolkitLog "Fetched assignments: $($assignments.Count)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
                 # Filter out the selected group
@@ -63,7 +65,7 @@ $DeleteAssignmentButton.Add_Click({
                     $bodyObject = @{
                         mobileAppAssignments = $updatedAssignments
                     }
-                }elseif($global:CurrentPolicyType -eq "deviceManagementScripts") {
+                }elseif($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts") {
                     $bodyObject = @{
                         deviceManagementScriptAssignments = $updatedAssignments
                     }
@@ -78,10 +80,10 @@ $DeleteAssignmentButton.Add_Click({
                 Write-IntuneToolkitLog "Body for update: $body" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
                 # Update the assignments
-                if ($global:CurrentPolicyType -eq "mobileApps") {
-                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/$($selectedPolicy.PolicyId)/assign"
+                if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
+                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
                 } else {
-                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)/$($selectedPolicy.PolicyId)/assign"
+                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
                 }
                 Write-IntuneToolkitLog "Updating assignments at: $urlUpdateAssignments" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
                 Invoke-MgGraphRequest -Uri $urlUpdateAssignments -Method POST -Body $body -ContentType "application/json"

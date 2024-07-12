@@ -49,13 +49,14 @@ $AddAssignmentButton.Add_Click({
                     Write-IntuneToolkitLog "Processing selected policy: $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
                     # Get current assignments
-                    if ($global:CurrentPolicyType -eq "mobileApps") {
-                        $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps('$($selectedPolicy.PolicyId)')/assignments"
+                    if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType  -eq "mobileAppConfigurations") {
+                        $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
+                        $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
                     } else {
-                        $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
+                        $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
+                        $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
                     }
                     Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
-                    $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
                     Write-IntuneToolkitLog "Fetched assignments: $($assignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
                     # Determine the target type based on the assignment type
@@ -97,7 +98,7 @@ $AddAssignmentButton.Add_Click({
                         $bodyObject = @{
                             mobileAppAssignments = $assignments
                         }
-                    } elseif ($global:CurrentPolicyType -eq "deviceManagementScripts") {
+                    } elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts") {
                         $newAssignment = @{
                             target = @{
                                 '@odata.type' = $targetType
@@ -114,7 +115,7 @@ $AddAssignmentButton.Add_Click({
                         $bodyObject = @{
                             deviceManagementScriptAssignments = $assignments
                         }
-                    }else {
+                    } else {
                         $newAssignment = @{
                             target = @{
                                 '@odata.type' = $targetType
@@ -138,8 +139,8 @@ $AddAssignmentButton.Add_Click({
                     Write-IntuneToolkitLog "Body for update: $body" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
                     # Update the assignments
-                    if ($global:CurrentPolicyType -eq "mobileApps") {
-                        $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps('$($selectedPolicy.PolicyId)')/assign"
+                    if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType  -eq "mobileAppConfigurations") {
+                        $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
                     } else {
                         $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
                     }

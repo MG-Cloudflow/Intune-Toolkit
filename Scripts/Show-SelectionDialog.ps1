@@ -7,7 +7,8 @@ This script is triggered when the AdminTemplatesButton is clicked. It sets the g
 
 .NOTES
 Author: Maxime Guillemin | CloudFlow
-Date: 21/06/2024
+Date: 09/07/2024
+
 
 .EXAMPLE
 $AdminTemplatesButton.Add_Click({
@@ -18,7 +19,7 @@ function Show-SelectionDialog {
     param (
         [Parameter(Mandatory = $true)]
         [array]$groups,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [array]$filters,
         [Parameter(Mandatory = $false)]
         [bool]$includeIntent = $false
@@ -106,6 +107,9 @@ function Show-SelectionDialog {
         }
         Write-IntuneToolkitLog "Populated filter combo box" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
     } else {
+        $comboBoxItem = New-Object Windows.Controls.ComboBoxItem
+        $comboBoxItem.Content = "No Filters"
+        $FilterComboBox.Items.Add($comboBoxItem)
         Write-IntuneToolkitLog "No filters available to populate filter combo box" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
     }
 
