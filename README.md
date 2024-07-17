@@ -36,6 +36,10 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Release Notes
+# v0.2.1-alpha
+- **Bug Fixes**
+  - Assignment Issue with Device confiuration poilicy (Settings Catalog)
+
 # v0.2.0-alpha
 - **Features**
   - Mac OS Scripts
@@ -46,11 +50,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Basic Version Check to latest Release Version on Github
 - **Bug Fixes**
   - Build in safety when no filters Exists ( Second Attempt ;-) )
-# v0.1.1-alpha
-=======
-- **Logging:** Detailed logging for all major actions and error handling.
 
-## Release Notes
 ### v0.1.1-alpha
 - **Features**
   - Platform scripts
