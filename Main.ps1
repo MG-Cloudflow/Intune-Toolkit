@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.0-alpha"
+$currentVersion = "v0.2.1-alpha"
 # Define the log file path
 $logFile = ".\IntuneToolkit.log"
 
