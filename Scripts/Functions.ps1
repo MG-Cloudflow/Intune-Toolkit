@@ -127,13 +127,13 @@ function Get-DevicePlatform {
         [string]$OdataType
     )
 
-    if ($OdataType -cmatch "android") {
+    if ($OdataType -cmatch "(?i)android") {
         return "Android"
-    } elseif ($OdataType -cmatch "ios") {
+    } elseif ($OdataType -cmatch "(?i)ios") {
         return "iOS"
-    } elseif ($OdataType -cmatch "macos") {
+    } elseif ($OdataType -cmatch "(?i)macos") {
         return "MacOS"
-    } elseif ($OdataType -cmatch "windows") {
+    } elseif ($OdataType -cmatch "(?i)windows") {
         return "Windows"
     } else {
         return "Unknown"
