@@ -87,6 +87,58 @@ function Get-GraphData {
         Write-IntuneToolkitLog $errorMessage -component "Get-GraphData" -file "Functions.ps1"
     }
 }
+function Get-PlatformApps {
+    param (
+        [Parameter(Mandatory = $false)]
+        [string]$odataType
+    )
+
+    switch ($odataType) {
+        "#microsoft.graph.androidStoreApp"        { $platform = "Android" }
+        "#microsoft.graph.androidLobApp"          { $platform = "Android" }
+        "#microsoft.graph.androidManagedStoreApp" { $platform = "Android" }
+        "#microsoft.graph.androidForWorkApp"      { $platform = "Android" }
+        
+        "#microsoft.graph.iosStoreApp"            { $platform = "iOS" }
+        "#microsoft.graph.iosLobApp"              { $platform = "iOS" }
+        "#microsoft.graph.iosVppApp"              { $platform = "iOS" }
+        "#microsoft.graph.iosWebClip"             { $platform = "iOS" }
+        
+        "#microsoft.graph.win32LobApp"            { $platform = "Windows" }
+        "#microsoft.graph.windowsUniversalAppX"   { $platform = "Windows" }
+        "#microsoft.graph.windowsStoreApp"        { $platform = "Windows" }
+        "#microsoft.graph.windowsMicrosoftEdgeApp"{ $platform = "Windows" }
+        "#microsoft.graph.microsoftStoreForBusinessApp" { $platform = "Windows" }
+        "#microsoft.graph.winGetApp"              { $platform = "Windows" }
+        "#microsoft.graph.officeSuiteApp"         { $platform = "Windows" }
+        
+        "#microsoft.graph.macOSLobApp"            { $platform = "macOS" }
+        "#microsoft.graph.macOSMicrosoftEdgeApp"  { $platform = "macOS" }
+        
+        "#microsoft.graph.webApp"                 { $platform = "Web" }
+        
+        default                                   { $platform = "Unknown" }
+    }
+
+    return $platform
+}
+function Get-DevicePlatform {
+    param (
+        [string]$OdataType
+    )
+
+    if ($OdataType -cmatch "android") {
+        return "Android"
+    } elseif ($OdataType -cmatch "ios") {
+        return "iOS"
+    } elseif ($OdataType -cmatch "macos") {
+        return "MacOS"
+    } elseif ($OdataType -cmatch "windows") {
+        return "Windows"
+    } else {
+        return "Unknown"
+    }
+}
 
 # Function to reload the grid data
 function Reload-Grid {
@@ -123,6 +175,19 @@ function Reload-Grid {
     # Initialize the global variable as an array
     $global:AllPolicyData = @()
     foreach ($policy in $result) {
+        if($type -eq "configurationPolicies"){
+            $platform = Get-DevicePlatform -OdataType $policy.platforms
+        } elseif($type -eq "mobileApps"){
+            $platform = Get-PlatformApps -odataType $policy.'@odata.type'
+        } elseif($type -eq "groupPolicyConfigurations"){
+            $platform = "Windows"
+        } elseif($type -eq "deviceManagementScripts"){
+            $platform = "Windows"
+        } elseif($type -eq "deviceShellScripts"){
+            $platform = "MacOS"
+        }else {
+            $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
+        }
         if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
@@ -140,6 +205,7 @@ function Reload-Grid {
                         FilterDisplayname = $filterDisplayName
                         FilterType = $assignment.target.deviceAndAppManagementAssignmentFilterType
                         InstallIntent = "" # Default empty for non-mobileApps
+                        Platform = $platform
                     }
                 }
             } else {
@@ -154,6 +220,7 @@ function Reload-Grid {
                     FilterDisplayname = ""
                     FilterType = ""
                     InstallIntent = "" # Default empty for non-mobileApps
+                    Platform = $platform
                 }
             }
         } elseif ($type -eq "mobileApps") {
@@ -173,6 +240,7 @@ function Reload-Grid {
                         FilterDisplayname = $filterDisplayName
                         FilterType = $assignment.target.deviceAndAppManagementAssignmentFilterType
                         InstallIntent = if ($assignment.intent) { $assignment.intent } else { "" }
+                        Platform = $platform
                     }
                 }
             } else {
@@ -187,6 +255,7 @@ function Reload-Grid {
                     FilterDisplayname = ""
                     FilterType = ""
                     InstallIntent = ""
+                    Platform = $platform
                 }
             }
         }
@@ -235,10 +304,14 @@ function Load-PolicyData {
     $PolicyDataGrid.Items.Refresh()
 
     $InstallIntentColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Install Intent" }
+    #$PlatformCollum = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Platform" }
+    #$PlatformCollum.Visibility = [System.Windows.Visibility]::Visible
     if ($policyType -eq "mobileApps") {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Visible
+        #$PlatformCollum.Visibility = [System.Windows.Visibility]::Visible
     } else {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Collapsed
+        #$PlatformCollum.Visibility = [System.Windows.Visibility]::Collapsed
     }
     $StatusText.Text = $loadedMessage
     $ConfigurationPoliciesButton.IsEnabled = $true

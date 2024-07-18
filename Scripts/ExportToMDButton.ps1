@@ -18,7 +18,6 @@ The policy data loaded in the grid that needs to be exported.
 Author: Maxime Guillemin | CloudFlow
 Date: 09/07/2024
 
-
 This script adds a button to the Intune Toolkit interface that allows users to export 
 policy data to a Markdown file. The export process includes handling for selected policies 
 or all policies if none are selected, and incorporates detailed error handling and logging.
@@ -62,23 +61,37 @@ $ExportToMDButton.Add_Click({
             $tenantinfo = "Tenant: $($tenant.value[0].displayName)"
             $dateString = Get-Date -Format "dddd, MMMM dd, yyyy HH:mm:ss"
             $markdownContent = ""
-            $markdownContent += "# $global:CurrentPolicyType`n`n"
-            $markdownContent += " $tenantinfo `n`n"
-            $markdownContent += " Documentation Date: $dateString `n`n"
+            $markdownContentHeader =""
+            $tocContent = "## Table of Contents`n`n"
+            $markdownContentHeader += "# $global:CurrentPolicyType`n`n"
+            $markdownContentHeader += "$tenantinfo`n`n"
+            $markdownContentHeader += "Documentation Date: $dateString`n`n"
 
-            # Group policies by PolicyId and sort by PolicyName
-            $uniquePolicies = $PolicyDataGrid | Group-Object -Property PolicyId | Sort-Object { $_.Group[0].PolicyName }
+            # Group policies by PolicyId and sort by Platform and PolicyName
+            $uniquePolicies = $PolicyDataGrid | Group-Object -Property PolicyId | Sort-Object { $_.Group[0].Platform }, { $_.Group[0].PolicyName }
 
+            $currentPlatform = ""
             foreach ($policyGroup in $uniquePolicies) {
                 $firstPolicy = $policyGroup.Group[0]
                 $PolicyName = $firstPolicy.PolicyName
                 $PolicyDescription = $firstPolicy.PolicyDescription
+                $PolicyPlatform = $firstPolicy.Platform
+
+                # Add platform title if it has changed
+                if ($currentPlatform -ne $PolicyPlatform) {
+                    $currentPlatform = $PolicyPlatform
+                    $markdownContent += "## $($currentPlatform)`n`n"
+                    $tocContent += "- [$($currentPlatform)](#$($currentPlatform.ToLower())-applications)`n"
+                }
+
+                # Add policy name to TOC
+                $tocContent += "  - [$($PolicyName)](#$(($PolicyName -replace ' ', '-').ToLower()))`n"
 
                 # Add policy name and description to markdown content
-                $markdownContent += "## $($PolicyName)`n`n"
-                $markdownContent += "### Description`n`n"
+                $markdownContent += "### $($PolicyName)`n`n"
+                $markdownContent += "#### Description`n`n"
                 $markdownContent += "$($PolicyDescription)`n`n"
-                $markdownContent += "### Assignments`n`n"
+                $markdownContent += "#### Assignments`n`n"
                 
                 # Add table headers based on policy type
                 if ($CurrentPolicyType -eq "mobileApps") {
@@ -108,9 +121,12 @@ $ExportToMDButton.Add_Click({
                 $markdownContent += "`n`n"
             }
 
+            # Combine TOC and main content
+            $finalContent = "$markdownContentHeader`n$tocContent`n$markdownContent"
+
             # Write the markdown content to a file
             try {
-                $markdownContent | Out-File -FilePath $OutputPath -Encoding utf8
+                $finalContent | Out-File -FilePath $OutputPath -Encoding utf8
                 Write-IntuneToolkitLog -Message "Exported policy data to Markdown file at $OutputPath" -Component "ExportToMarkdown"
             }
             catch {

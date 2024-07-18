@@ -89,6 +89,7 @@
                 <ComboBox x:Name="SearchFieldComboBox" Width="150" SelectedIndex="0" IsEnabled="False" Style="{StaticResource ComboBoxButtonStyle}">
                     <ComboBoxItem Content="Policy Name" Tag="PolicyName"/>
                     <ComboBoxItem Content="Description" Tag="PolicyDescription"/>
+                    <ComboBoxItem Content="Platform" Tag="Platform"/>
                     <ComboBoxItem Content="Group Display Name" Tag="GroupDisplayname"/>
                     <ComboBoxItem Content="Filter Display Name" Tag="FilterDisplayname"/>
                     <ComboBoxItem Content="Filter Type" Tag="FilterType"/>
@@ -102,11 +103,12 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Policy Name" Binding="{Binding PolicyName}" Width="*"/>
                 <DataGridTextColumn Header="Description" Binding="{Binding PolicyDescription}" Width="*"/>
+                <DataGridTextColumn Header="Platform" Binding="{Binding Platform}" Width="*" />
                 <DataGridTextColumn Header="Assignment Type" Binding="{Binding AssignmentType}" Width="*"/>
                 <DataGridTextColumn Header="Group Display Name" Binding="{Binding GroupDisplayname}" Width="*"/>
                 <DataGridTextColumn Header="Filter Display Name" Binding="{Binding FilterDisplayname}" Width="*"/>
                 <DataGridTextColumn Header="Filter Type" Binding="{Binding FilterType}" Width="*"/>
-                <DataGridTextColumn Header="Install Intent" Binding="{Binding InstallIntent}" Width="*" Visibility="Collapsed"/> <!-- New column for Install Intent -->
+                <DataGridTextColumn Header="Install Intent" Binding="{Binding InstallIntent}" Width="*" Visibility="Collapsed"/>
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="3" Grid.Column="1" Margin="10">
