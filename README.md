@@ -39,7 +39,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Release Notes
-### v0.2.1-alpha
+### v0.2.2-alpha
 - **Features**
   - Assignments
     - Managed Google Play Store App
