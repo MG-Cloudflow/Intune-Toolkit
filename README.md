@@ -16,10 +16,13 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Device Configuration Policies
   - Device Compliance Policies
   - Mobile Applications
+    - Windows Applications
+    - MacOS Applications
+    - Android Managed Google Playstore Applications
+    - IOS Store Applications
   - App Configuration Policies
   - Administrative Templates
   - Platform Scripts
-
   - Mac OS Scripts
 - **Assignment Management:**
   - Add and delete assignments for selected policies.
@@ -36,6 +39,16 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Release Notes
+### v0.2.2-alpha
+- **Features**
+  - Assignments
+    - Managed Google Play Store App
+    - IOS Store App
+  - Platform Inormation
+  - Update to "Export to Mark Down (MD)"
+    - Table of Contents
+    - Platfrom Information  
+ 
 ### v0.2.1-alpha
 - **Bug Fixes**
   - Assignment Issue with Device confiuration poilicy (Settings Catalog)
@@ -65,7 +78,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 
 ## Prerequisites
 
-- PowerShell 5.1 or later.
+- PowerShell 7.0 or later.
 - Microsoft Graph PowerShell SDK.
 - Windows Presentation Framework (WPF) for the GUI components.
 - Access to Microsoft Intune with the necessary permissions.
