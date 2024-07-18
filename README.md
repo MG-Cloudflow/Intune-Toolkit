@@ -45,7 +45,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
     - Managed Google Play Store App
     - IOS Store App
   - Platform Inormation
-  - Export to Mark Down (MD)
+  - Update to "Export to Mark Down (MD)"
     - Table of Contents
     - Platfrom Information  
  
