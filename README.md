@@ -16,8 +16,14 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Device Configuration Policies
   - Device Compliance Policies
   - Mobile Applications
+    - Windows Applications
+    - MacOS Applications
+    - Android Managed Google Playstore Applications
+    - IOS Store Applications
+  - App Configuration Policies
   - Administrative Templates
   - Platform Scripts
+  - Mac OS Scripts
 - **Assignment Management:**
   - Add and delete assignments for selected policies.
   - Search Security Groups.
@@ -26,10 +32,39 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Back up and restore assignments to policies and apps.
 - **Export Assignments:**
   - Export assignments to CSV
+
+  - Document Assignments to Markdown File
+    - Selected Policies / applications
+    - Bulk Export of Policy Type
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Release Notes
-# v0.1.1-alpha
+### v0.2.2-alpha
+- **Features**
+  - Assignments
+    - Managed Google Play Store App
+    - IOS Store App
+  - Platform Inormation
+  - Update to "Export to Mark Down (MD)"
+    - Table of Contents
+    - Platfrom Information  
+ 
+### v0.2.1-alpha
+- **Bug Fixes**
+  - Assignment Issue with Device confiuration poilicy (Settings Catalog)
+
+### v0.2.0-alpha
+- **Features**
+  - Mac OS Scripts
+  - App Configuration Policies
+  - Document To markdown
+    - Selected Policies / applications
+    - Bulk Export of Policy Type
+  - Basic Version Check to latest Release Version on Github
+- **Bug Fixes**
+  - Build in safety when no filters Exists ( Second Attempt ;-) )
+
+### v0.1.1-alpha
 - **Features**
   - Platform scripts
   - Export To CSV
@@ -43,7 +78,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 
 ## Prerequisites
 
-- PowerShell 5.1 or later.
+- PowerShell 7.0 or later.
 - Microsoft Graph PowerShell SDK.
 - Windows Presentation Framework (WPF) for the GUI components.
 - Access to Microsoft Intune with the necessary permissions.
