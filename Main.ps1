@@ -82,6 +82,7 @@ function Show-Window {
         # Load UI elements
         $TenantInfo = $Window.FindName("TenantInfo")
         $ConnectButton = $Window.FindName("ConnectButton")
+        $ConnectEnterpriseAppButton = $Window.FindName("ConnectEnterpriseAppButton")
         $LogoutButton = $Window.FindName("LogoutButton")
         $StatusText = $Window.FindName("StatusText")
         $PolicyDataGrid = $Window.FindName("PolicyDataGrid")
@@ -110,7 +111,9 @@ function Show-Window {
 
         # Import external script files
         . .\Scripts\Functions.ps1
+        . .\Scripts\Connect-ToMgGraph.ps1
         . .\Scripts\ConnectButton.ps1
+        . .\Scripts\ConnectEnterpriseAppButton.ps1
         . .\Scripts\LogoutButton.ps1
         . .\Scripts\ConfigurationPoliciesButton.ps1
         . .\Scripts\DeviceConfigurationButton.ps1
