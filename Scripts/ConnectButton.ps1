@@ -36,6 +36,7 @@ $ConnectButton.Add_Click({
         # Update UI elements
         $StatusText.Text = "Please select a policy type."
         $PolicyDataGrid.Visibility = "Visible"
+        $RenameButton.IsEnabled = $true
         $DeleteAssignmentButton.IsEnabled = $true
         $AddAssignmentButton.IsEnabled = $true
         $BackupButton.IsEnabled = $true

@@ -85,6 +85,7 @@ function Show-Window {
         $LogoutButton = $Window.FindName("LogoutButton")
         $StatusText = $Window.FindName("StatusText")
         $PolicyDataGrid = $Window.FindName("PolicyDataGrid")
+        $RenameButton = $Window.FindName("RenameButton")
         $DeleteAssignmentButton = $Window.FindName("DeleteAssignmentButton")
         $AddAssignmentButton = $Window.FindName("AddAssignmentButton")
         $BackupButton = $Window.FindName("BackupButton")
@@ -116,6 +117,7 @@ function Show-Window {
         . .\Scripts\ComplianceButton.ps1
         . .\Scripts\AdminTemplatesButton.ps1
         . .\Scripts\ApplicationsButton.ps1
+        . .\Scripts\RenameButton.ps1
         . .\Scripts\DeleteAssignmentButton.ps1
         . .\Scripts\AddAssignmentButton.ps1
         . .\Scripts\BackupButton.ps1
@@ -128,7 +130,6 @@ function Show-Window {
         . .\Scripts\PlatformScriptsButton.ps1
         . .\Scripts\AppConfigButton.ps1
         . .\Scripts\MacosScriptsButton.ps1
-        # Check for the latest version
         . .\Scripts\CheckVersion.ps1
 
         Check-LatestVersion -currentVersion $currentVersion

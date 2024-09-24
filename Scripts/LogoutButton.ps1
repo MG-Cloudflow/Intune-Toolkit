@@ -28,6 +28,7 @@ $LogoutButton.Add_Click({
         $TenantInfo.Text = ""
         $StatusText.Text = "Please login to Graph before using the app"
         $PolicyDataGrid.Visibility = "Hidden"
+        $RenameButton.IsEnabled = $false
         $DeleteAssignmentButton.IsEnabled = $false
         $AddAssignmentButton.IsEnabled = $false
         $BackupButton.IsEnabled = $false

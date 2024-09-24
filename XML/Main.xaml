@@ -112,6 +112,7 @@
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="3" Grid.Column="1" Margin="10">
+            <Button x:Name="RenameButton" Content="Edit Name/Description" Width="180" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             <Button x:Name="BackupButton" Content="Backup" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
