@@ -18,8 +18,27 @@ Displays the main window of the application.
 #>
 
 $currentVersion = "v0.2.2-alpha"
+
+#region log file
 # Define the log file path
-$logFile = ".\IntuneToolkit.log"
+$global:logFile = "$env:TEMP\IntuneToolkit.log"
+
+# Create a backup of the existing log file with the current date-time
+if (Test-Path -Path $global:logFile -ErrorAction SilentlyContinue) {
+    $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
+    $backupFilePath = Join-Path -Path $env:TEMP -ChildPath "IntuneToolkit-$timestamp.log"
+    Copy-Item -Path $global:logFile -Destination $backupFilePath -ErrorAction SilentlyContinue
+	#Clear Existing $global:logFile content
+	Clear-Content -Path $global:logFile -ErrorAction SilentlyContinue
+	$logEntry = "Log entry created at $($timestamp)"
+	Add-Content -Path $global:logFile -Value $logEntry
+} else {
+# Create new log file if doesn't exist of after it was backed up
+New-Item -Path $global:logFile -ItemType File -Force -ErrorAction SilentlyContinue
+$logEntry = "Log entry created at $($timestamp)"
+Add-Content -Path $global:logFile -Value $logEntry
+}
+#endregion
 
 # Function to log actions and errors to the IntuneToolkit log file
 function Write-IntuneToolkitLog {
@@ -63,6 +82,22 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
     Write-IntuneToolkitLog $errorMessage
     exit 1
 }
+
+# Check if PowerShell versoin is 7.0.0 based on requirements from https://github.com/MG-Cloudflow/Intune-Toolkit by Thiago Beier https://x.com/thiagobeier https://github.com/thiagogbeier
+$PScurrentVersion = $PSVersionTable.PSVersion
+$PSrequiredVersion = [Version]"7.0.0"
+
+# Check if the current version is less than the required version
+if ($PScurrentVersion -lt $PSrequiredVersion) {
+    $errorMessage = "You are running PowerShell version $PScurrentVersion. Please upgrade to PowerShell 7 or higher."
+	[System.Windows.Forms.MessageBox]::Show($errorMessage, "PowerShell Version outdated", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+	Write-IntuneToolkitLog $errorMessage
+	exit 1
+} else {
+	#$errorMessage = "You are running PowerShell version $currentVersion. All good!"
+	Write-IntuneToolkitLog $errorMessage
+}
+
 
 # Function to display the main window
 function Show-Window {
