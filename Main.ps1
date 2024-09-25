@@ -18,8 +18,27 @@ Displays the main window of the application.
 #>
 
 $currentVersion = "v0.2.2-alpha"
+
+#region log file
 # Define the log file path
-$logFile = ".\IntuneToolkit.log"
+$global:logFile = "$env:TEMP\IntuneToolkit.log"
+
+# Create a backup of the existing log file with the current date-time
+if (Test-Path -Path $global:logFile -ErrorAction SilentlyContinue) {
+    $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
+    $backupFilePath = Join-Path -Path $env:TEMP -ChildPath "IntuneToolkit-$timestamp.log"
+    Copy-Item -Path $global:logFile -Destination $backupFilePath -ErrorAction SilentlyContinue
+	#Clear Existing $global:logFile content
+	Clear-Content -Path $global:logFile -ErrorAction SilentlyContinue
+	$logEntry = "Log entry created at $($timestamp)"
+	Add-Content -Path $global:logFile -Value $logEntry
+} else {
+# Create new log file if doesn't exist of after it was backed up
+New-Item -Path $global:logFile -ItemType File -Force -ErrorAction SilentlyContinue
+$logEntry = "Log entry created at $($timestamp)"
+Add-Content -Path $global:logFile -Value $logEntry
+}
+#endregion
 
 # Function to log actions and errors to the IntuneToolkit log file
 function Write-IntuneToolkitLog {
