@@ -146,8 +146,8 @@ function Install-GraphModules {
 #If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
 if ($entraapp) {
     #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
-    Install-GraphModules
+    #Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    #Install-GraphModules
 
     if (-not $AppId) {
         throw "Error: The -AppId parameter is required when using -entraapp."
