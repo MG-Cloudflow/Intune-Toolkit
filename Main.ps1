@@ -64,6 +64,22 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
     exit 1
 }
 
+# Check if PowerShell versoin is 7.0.0 based on requirements from https://github.com/MG-Cloudflow/Intune-Toolkit by Thiago Beier https://x.com/thiagobeier https://github.com/thiagogbeier
+$PScurrentVersion = $PSVersionTable.PSVersion
+$PSrequiredVersion = [Version]"7.0.0"
+
+# Check if the current version is less than the required version
+if ($PScurrentVersion -lt $PSrequiredVersion) {
+    $errorMessage = "You are running PowerShell version $PScurrentVersion. Please upgrade to PowerShell 7 or higher."
+	[System.Windows.Forms.MessageBox]::Show($errorMessage, "PowerShell Version outdated", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+	Write-IntuneToolkitLog $errorMessage
+	exit 1
+} else {
+	#$errorMessage = "You are running PowerShell version $currentVersion. All good!"
+	Write-IntuneToolkitLog $errorMessage
+}
+
+
 # Function to display the main window
 function Show-Window {
     Write-IntuneToolkitLog "Starting Show-Window"
