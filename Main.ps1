@@ -75,14 +75,6 @@ try {
     exit 1
 }
 
-# Check if Microsoft.Graph module is installed
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
-    $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
-    [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    Write-IntuneToolkitLog $errorMessage
-    exit 1
-}
-
 # Check if PowerShell versoin is 7.0.0 based on requirements from https://github.com/MG-Cloudflow/Intune-Toolkit by Thiago Beier https://x.com/thiagobeier https://github.com/thiagogbeier
 $PScurrentVersion = $PSVersionTable.PSVersion
 $PSrequiredVersion = [Version]"7.0.0"
@@ -98,6 +90,13 @@ if ($PScurrentVersion -lt $PSrequiredVersion) {
 	Write-IntuneToolkitLog $errorMessage
 }
 
+# Check if Microsoft.Graph module is installed
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
+    [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    Write-IntuneToolkitLog $errorMessage
+    exit 1
+}
 
 # Function to display the main window
 function Show-Window {
