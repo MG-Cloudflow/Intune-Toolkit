@@ -39,6 +39,9 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Release Notes
+### v0.2.4-alpha
+- **BugFix**
+  - moved powershell validation to before check microsoft.graph module ->  contribution By thiagogbeier
 ### v0.2.3-alpha
 - **Features**
   - added log file to $env: as %temp% location under current user context/scope -> contribution By thiagogbeier
