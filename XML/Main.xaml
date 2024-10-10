@@ -8,13 +8,13 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="BorderBrush" Value="#007ACC"/>
-            <Setter Property="Height" Value="30"/>
+            <Setter Property="Height" Value="40"/>
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Padding" Value="10,5"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="14"/>
         </Style>
         <!-- Sidebar button style -->
         <Style TargetType="Button" x:Key="SidebarButtonStyle" BasedOn="{StaticResource BaseButtonStyle}">
@@ -61,7 +61,6 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Orientation="Vertical" Grid.Column="0" Grid.Row="2" Margin="10">
             <Button x:Name="ConfigurationPoliciesButton" Content="Configuration Policies" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
@@ -87,7 +86,6 @@
             <StackPanel Orientation="Horizontal" Grid.Row="0">
                 <TextBlock x:Name="TenantInfo" Text="" VerticalAlignment="Center" Margin="5"/>
             </StackPanel>
-            <Button x:Name="RefreshButton" Content="↻" Style="{StaticResource BaseButtonStyle}" IsEnabled="False" Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Grid.Row="0" Grid.Column="1"/>
             <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="10">
                 <ComboBox x:Name="SearchFieldComboBox" Width="150" SelectedIndex="0" IsEnabled="False" Style="{StaticResource ComboBoxButtonStyle}">
                     <ComboBoxItem Content="Policy Name" Tag="PolicyName"/>
@@ -98,7 +96,7 @@
                     <ComboBoxItem Content="Filter Type" Tag="FilterType"/>
                 </ComboBox>
                 <TextBox x:Name="SearchBox" Width="300" IsEnabled="False" Style="{StaticResource {x:Type TextBox}}"/>
-                <Button x:Name="SearchButton" Content="Search" Width="80" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="SearchButton" Content="Search" Width="100" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             </StackPanel>
         </Grid>
         <TextBlock x:Name="StatusText" Text="Please login to Graph before using the app" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"/>
@@ -114,17 +112,13 @@
                 <DataGridTextColumn Header="Install Intent" Binding="{Binding InstallIntent}" Width="*" Visibility="Collapsed"/>
             </DataGrid.Columns>
         </DataGrid>
-        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Grid.Row="3" Grid.Column="1" Margin="10">
-            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="BackupButton" Content="Backup" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                <Button x:Name="RestoreButton" Content="Restore Assignments" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="ExportToMDButton" Content="Export to MD" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-            </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="3" Grid.Column="1" Margin="10">
+            <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="BackupButton" Content="Backup" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="RestoreButton" Content="Restore Assignments" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ExportToMDButton" Content="Export to MD" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
         </StackPanel>
     </Grid>
 </Window>
