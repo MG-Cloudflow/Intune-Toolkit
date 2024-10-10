@@ -49,7 +49,6 @@ $LogoutButton.Add_Click({
         $SearchButton.IsEnabled = $false
         $ExportToCSVButton.IsEnabled = $false
         $ExportToMDButton.IsEnabled = $false
-        $RefreshButton.IsEnabled = $false
 
         Write-IntuneToolkitLog "UI elements reset successfully" -component "Logout-Button" -file "LogoutButton.ps1"
         

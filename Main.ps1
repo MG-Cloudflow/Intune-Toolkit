@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.5-alpha"
+$currentVersion = "v0.2.3-alpha"
 
 #region log file
 # Define the log file path
@@ -75,6 +75,14 @@ try {
     exit 1
 }
 
+# Check if Microsoft.Graph module is installed
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
+    [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    Write-IntuneToolkitLog $errorMessage
+    exit 1
+}
+
 # Check if PowerShell versoin is 7.0.0 based on requirements from https://github.com/MG-Cloudflow/Intune-Toolkit by Thiago Beier https://x.com/thiagobeier https://github.com/thiagogbeier
 $PScurrentVersion = $PSVersionTable.PSVersion
 $PSrequiredVersion = [Version]"7.0.0"
@@ -90,13 +98,6 @@ if ($PScurrentVersion -lt $PSrequiredVersion) {
 	Write-IntuneToolkitLog $errorMessage
 }
 
-# Check if Microsoft.Graph module is installed
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
-    $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
-    [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    Write-IntuneToolkitLog $errorMessage
-    exit 1
-}
 
 # Function to display the main window
 function Show-Window {
@@ -118,7 +119,6 @@ function Show-Window {
         $ConnectButton = $Window.FindName("ConnectButton")
         $ConnectEnterpriseAppButton = $Window.FindName("ConnectEnterpriseAppButton")
         $LogoutButton = $Window.FindName("LogoutButton")
-        $RefreshButton = $Window.FindName("RefreshButton")
         $StatusText = $Window.FindName("StatusText")
         $PolicyDataGrid = $Window.FindName("PolicyDataGrid")
         $RenameButton = $Window.FindName("RenameButton")
@@ -150,7 +150,6 @@ function Show-Window {
         . .\Scripts\ConnectButton.ps1
         . .\Scripts\ConnectEnterpriseAppButton.ps1
         . .\Scripts\LogoutButton.ps1
-        . .\Scripts\RefreshButton.ps1
         . .\Scripts\ConfigurationPoliciesButton.ps1
         . .\Scripts\DeviceConfigurationButton.ps1
         . .\Scripts\ComplianceButton.ps1
@@ -170,14 +169,12 @@ function Show-Window {
         . .\Scripts\AppConfigButton.ps1
         . .\Scripts\MacosScriptsButton.ps1
         . .\Scripts\CheckVersion.ps1
-        
 
         Check-LatestVersion -currentVersion $currentVersion
 
         Write-IntuneToolkitLog "Successfully imported external scripts"
 
         $Window.ShowDialog() | Out-Null
-
         Write-IntuneToolkitLog "Displayed the window successfully"
     } catch {
         $errorMessage = "Failed to load and display the window: $($_.Exception.Message)"
