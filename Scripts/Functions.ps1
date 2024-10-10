@@ -158,12 +158,11 @@ function Reload-Grid {
     $result = Get-GraphData -url $url
 
     # Fetch all security groups and filters
-    $allGroups = Get-AllSecurityGroups
     $allFilters = Get-AllAssignmentFilters
 
     # Convert lists to hash tables for quick lookup
     $groupLookup = @{}
-    foreach ($group in $allGroups) {
+    foreach ($group in $global:AllSecurityGroups) {
         $groupLookup[$group.Id] = $group.DisplayName
     }
 

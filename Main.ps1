@@ -166,10 +166,12 @@ function Show-Window {
         . .\Scripts\CheckVersion.ps1
 
         Check-LatestVersion -currentVersion $currentVersion
+        $global:AllSecurityGroups = Get-AllSecurityGroups
 
         Write-IntuneToolkitLog "Successfully imported external scripts"
 
         $Window.ShowDialog() | Out-Null
+
         Write-IntuneToolkitLog "Displayed the window successfully"
     } catch {
         $errorMessage = "Failed to load and display the window: $($_.Exception.Message)"
