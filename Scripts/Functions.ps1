@@ -24,11 +24,12 @@ Load-PolicyData -policyType "deviceConfigurations" -loadingMessage "Loading..." 
 function Get-AllSecurityGroups {
     Write-IntuneToolkitLog "Starting Get-AllSecurityGroups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
     try {
-        $url = "https://graph.microsoft.com/beta/groups?`$filter=securityEnabled eq true&`$select=id,displayName"
+        $url = "https://graph.microsoft.com/beta/groups"
         Write-IntuneToolkitLog "Fetching all security groups with pagination from $url" -component "Get-AllSecurityGroups" -file "Functions.ps1"
         $allGroups = Get-GraphData -url $url
+        $formattedGroups = $allGroups | Select-Object Id, DisplayName
         Write-IntuneToolkitLog "Successfully fetched all security groups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
-        return $allGroups
+        return $formattedGroups
     } catch {
         $errorMessage = "Failed to get all security groups: $($_.Exception.Message)"
         Write-Error $errorMessage
@@ -157,11 +158,12 @@ function Reload-Grid {
     $result = Get-GraphData -url $url
 
     # Fetch all security groups and filters
+    $allGroups = Get-AllSecurityGroups
     $allFilters = Get-AllAssignmentFilters
 
     # Convert lists to hash tables for quick lookup
     $groupLookup = @{}
-    foreach ($group in $global:AllSecurityGroups) {
+    foreach ($group in $allGroups) {
         $groupLookup[$group.Id] = $group.DisplayName
     }
 
@@ -295,7 +297,6 @@ function Load-PolicyData {
     $SearchButton.IsEnabled = $false
     $ExportToCSVButton.IsEnabled = $false
     $ExportToMDButton.IsEnabled = $false
-    $RefreshButton.IsEnabled = $false
 
     # Load data synchronously
     $result = Reload-Grid -type $policyType
@@ -333,5 +334,4 @@ function Load-PolicyData {
     $SearchButton.IsEnabled = $true
     $ExportToCSVButton.IsEnabled = $true
     $ExportToMDButton.IsEnabled = $true
-    $RefreshButton.IsEnabled = $true
 }
