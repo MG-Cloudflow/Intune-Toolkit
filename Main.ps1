@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.4-alpha"
+$currentVersion = "v0.2.5-alpha"
 
 #region log file
 # Define the log file path
@@ -117,6 +117,7 @@ function Show-Window {
         $TenantInfo = $Window.FindName("TenantInfo")
         $ConnectButton = $Window.FindName("ConnectButton")
         $LogoutButton = $Window.FindName("LogoutButton")
+        $RefreshButton = $Window.FindName("RefreshButton")
         $StatusText = $Window.FindName("StatusText")
         $PolicyDataGrid = $Window.FindName("PolicyDataGrid")
         $DeleteAssignmentButton = $Window.FindName("DeleteAssignmentButton")
@@ -145,6 +146,7 @@ function Show-Window {
         . .\Scripts\Functions.ps1
         . .\Scripts\ConnectButton.ps1
         . .\Scripts\LogoutButton.ps1
+        . .\Scripts\RefreshButton.ps1
         . .\Scripts\ConfigurationPoliciesButton.ps1
         . .\Scripts\DeviceConfigurationButton.ps1
         . .\Scripts\ComplianceButton.ps1
@@ -164,6 +166,7 @@ function Show-Window {
         . .\Scripts\MacosScriptsButton.ps1
         # Check for the latest version
         . .\Scripts\CheckVersion.ps1
+        
 
         Check-LatestVersion -currentVersion $currentVersion
 
