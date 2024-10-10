@@ -24,12 +24,12 @@ Load-PolicyData -policyType "deviceConfigurations" -loadingMessage "Loading..." 
 function Get-AllSecurityGroups {
     Write-IntuneToolkitLog "Starting Get-AllSecurityGroups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
     try {
-        $url = "https://graph.microsoft.com/beta/groups"
+        $url = "https://graph.microsoft.com/beta/groups?`$count=true&`$select=id,displayName"
         Write-IntuneToolkitLog "Fetching all security groups with pagination from $url" -component "Get-AllSecurityGroups" -file "Functions.ps1"
         $allGroups = Get-GraphData -url $url
-        $formattedGroups = $allGroups | Select-Object Id, DisplayName
+        #$formattedGroups = $allGroups | Select-Object Id, DisplayName
         Write-IntuneToolkitLog "Successfully fetched all security groups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
-        return $formattedGroups
+        return $allGroups
     } catch {
         $errorMessage = "Failed to get all security groups: $($_.Exception.Message)"
         Write-Error $errorMessage
