@@ -41,9 +41,11 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 ## Release Notes
 ### v0.2.5-alpha
 - **Performance Upgrades**
-  - Preformance Update Fetching Security Groups
-  - Adding Manual Sync To Fetch Secuiryt Groups
-  
+  - Enhanced performance of security group fetching by adding additional filters to Graph API calls, reducing load times.
+  - Introduced a manual sync button for on-demand updates of security groups.
+  - Removed automatic security group fetching when loading policies/applications to prevent delays in large tenants.
+    - Security groups are now loaded at startup or through manual refresh. 
+
 ### v0.2.4-alpha
 - **BugFix**
   - moved powershell validation to before check microsoft.graph module ->  contribution By thiagogbeier
