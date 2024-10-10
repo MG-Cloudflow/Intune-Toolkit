@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.4-alpha"
+$currentVersion = "v0.2.5-alpha"
 
 #region log file
 # Define the log file path
@@ -116,11 +116,10 @@ function Show-Window {
         # Load UI elements
         $TenantInfo = $Window.FindName("TenantInfo")
         $ConnectButton = $Window.FindName("ConnectButton")
-        $ConnectEnterpriseAppButton = $Window.FindName("ConnectEnterpriseAppButton")
         $LogoutButton = $Window.FindName("LogoutButton")
+        $RefreshButton = $Window.FindName("RefreshButton")
         $StatusText = $Window.FindName("StatusText")
         $PolicyDataGrid = $Window.FindName("PolicyDataGrid")
-        $RenameButton = $Window.FindName("RenameButton")
         $DeleteAssignmentButton = $Window.FindName("DeleteAssignmentButton")
         $AddAssignmentButton = $Window.FindName("AddAssignmentButton")
         $BackupButton = $Window.FindName("BackupButton")
@@ -145,16 +144,14 @@ function Show-Window {
 
         # Import external script files
         . .\Scripts\Functions.ps1
-        . .\Scripts\Connect-ToMgGraph.ps1
         . .\Scripts\ConnectButton.ps1
-        . .\Scripts\ConnectEnterpriseAppButton.ps1
         . .\Scripts\LogoutButton.ps1
+        . .\Scripts\RefreshButton.ps1
         . .\Scripts\ConfigurationPoliciesButton.ps1
         . .\Scripts\DeviceConfigurationButton.ps1
         . .\Scripts\ComplianceButton.ps1
         . .\Scripts\AdminTemplatesButton.ps1
         . .\Scripts\ApplicationsButton.ps1
-        . .\Scripts\RenameButton.ps1
         . .\Scripts\DeleteAssignmentButton.ps1
         . .\Scripts\AddAssignmentButton.ps1
         . .\Scripts\BackupButton.ps1
@@ -167,13 +164,16 @@ function Show-Window {
         . .\Scripts\PlatformScriptsButton.ps1
         . .\Scripts\AppConfigButton.ps1
         . .\Scripts\MacosScriptsButton.ps1
+        # Check for the latest version
         . .\Scripts\CheckVersion.ps1
+        
 
         Check-LatestVersion -currentVersion $currentVersion
 
         Write-IntuneToolkitLog "Successfully imported external scripts"
 
         $Window.ShowDialog() | Out-Null
+
         Write-IntuneToolkitLog "Displayed the window successfully"
     } catch {
         $errorMessage = "Failed to load and display the window: $($_.Exception.Message)"

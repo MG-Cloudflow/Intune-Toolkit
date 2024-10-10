@@ -28,7 +28,6 @@ $LogoutButton.Add_Click({
         $TenantInfo.Text = ""
         $StatusText.Text = "Please login to Graph before using the app"
         $PolicyDataGrid.Visibility = "Hidden"
-        $RenameButton.IsEnabled = $false
         $DeleteAssignmentButton.IsEnabled = $false
         $AddAssignmentButton.IsEnabled = $false
         $BackupButton.IsEnabled = $false
@@ -49,6 +48,7 @@ $LogoutButton.Add_Click({
         $SearchButton.IsEnabled = $false
         $ExportToCSVButton.IsEnabled = $false
         $ExportToMDButton.IsEnabled = $false
+        $RefreshButton.IsEnabled = $false
 
         Write-IntuneToolkitLog "UI elements reset successfully" -component "Logout-Button" -file "LogoutButton.ps1"
         
