@@ -286,6 +286,7 @@ function Load-PolicyData {
     $PlatformScriptsButton.IsEnabled = $false
     $MacosScriptsButton.IsEnabled = $false
     $DeleteAssignmentButton.IsEnabled = $false
+    $RenameButton.IsEnabled = $false
     $AddAssignmentButton.IsEnabled = $false
     $BackupButton.IsEnabled = $false
     $RestoreButton.IsEnabled = $false
@@ -322,6 +323,7 @@ function Load-PolicyData {
     #$RemediationScriptsButton.IsEnabled = $true
     $PlatformScriptsButton.IsEnabled = $true
     $MacosScriptsButton.IsEnabled = $true
+    $RenameButton.IsEnabled = $true
     $DeleteAssignmentButton.IsEnabled = $true
     $AddAssignmentButton.IsEnabled = $true
     $BackupButton.IsEnabled = $true

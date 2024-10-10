@@ -76,6 +76,7 @@
         </StackPanel>
         <StackPanel Orientation="Vertical" Grid.Column="0" Grid.Row="0" Margin="10">
             <Button x:Name="ConnectButton" Content="Connect to Graph" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>
+            <Button x:Name="ConnectEnterpriseAppButton" Content="Connect to Graph App" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>
             <Button x:Name="LogoutButton" Content="Logout" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
         </StackPanel>
         <Grid Grid.Row="0" Grid.Column="1" Margin="10">
