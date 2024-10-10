@@ -33,6 +33,8 @@ $ConnectButton.Add_Click({
         $TenantInfo.Text = "Tenant: $($tenant.value[0].displayName) - Signed in as: $($user.userPrincipalName)"
         Write-IntuneToolkitLog "Updated TenantInfo text" -component "Connect-Button" -file "ConnectButton.ps1"
 
+        $global:AllSecurityGroups = Get-AllSecurityGroups
+
         # Update UI elements
         $StatusText.Text = "Please select a policy type."
         $PolicyDataGrid.Visibility = "Visible"
