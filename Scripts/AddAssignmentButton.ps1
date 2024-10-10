@@ -31,7 +31,6 @@ $AddAssignmentButton.Add_Click({
             Write-IntuneToolkitLog "Selected policies count: $($selectedPolicies.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
             # Get all security groups and filters, then allow selection
-            $allGroups = Get-AllSecurityGroups
             Write-IntuneToolkitLog "Fetched all security groups" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
             $allFilters = Get-AllAssignmentFilters
@@ -39,7 +38,7 @@ $AddAssignmentButton.Add_Click({
 
             # Include intent selection only for mobileApps
             $includeIntent = $global:CurrentPolicyType -eq "mobileApps"
-            $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent
+            $selection = Show-SelectionDialog -groups $global:AllSecurityGroups -filters $allFilters -includeIntent $includeIntent
             Write-IntuneToolkitLog "Showed selection dialog" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
             if ($selection -and $selection.Group) {
