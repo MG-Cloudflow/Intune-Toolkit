@@ -86,7 +86,7 @@
             <StackPanel Orientation="Horizontal" Grid.Row="0">
                 <TextBlock x:Name="TenantInfo" Text="" VerticalAlignment="Center" Margin="5"/>
             </StackPanel>
-            <Button x:Name="RefreshButton" Content="↻" Style="{StaticResource BaseButtonStyle}" Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Grid.Row="0" Grid.Column="1"/>
+            <Button x:Name="RefreshButton" Content="↻" Style="{StaticResource BaseButtonStyle}" IsEnabled="False" Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Grid.Row="0" Grid.Column="1"/>
             <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="10">
                 <ComboBox x:Name="SearchFieldComboBox" Width="150" SelectedIndex="0" IsEnabled="False" Style="{StaticResource ComboBoxButtonStyle}">
                     <ComboBoxItem Content="Policy Name" Tag="PolicyName"/>
