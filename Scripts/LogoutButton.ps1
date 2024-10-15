@@ -42,6 +42,7 @@ $LogoutButton.Add_Click({
         $MacosScriptsButton.IsEnabled = $false
         $PlatformScriptsButton.IsEnabled = $false
         $ConnectButton.IsEnabled = $true
+        $ConnectEnterpriseAppButton.IsEnabled = $true
         $LogoutButton.IsEnabled = $false
         $SearchFieldComboBox.IsEnabled = $false
         $SearchBox.IsEnabled = $false
