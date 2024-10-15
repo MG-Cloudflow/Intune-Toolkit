@@ -295,6 +295,7 @@ function Load-PolicyData {
     $ExportToCSVButton.IsEnabled = $false
     $ExportToMDButton.IsEnabled = $false
     $RefreshButton.IsEnabled = $false
+    $RenameButton.IsEnabled = $false
 
     # Load data synchronously
     $result = Reload-Grid -type $policyType
@@ -332,4 +333,5 @@ function Load-PolicyData {
     $ExportToCSVButton.IsEnabled = $true
     $ExportToMDButton.IsEnabled = $true
     $RefreshButton.IsEnabled = $true
+    $RenameButton.IsEnabled = $true
 }
