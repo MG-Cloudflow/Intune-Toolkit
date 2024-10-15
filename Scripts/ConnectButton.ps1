@@ -59,6 +59,7 @@ $ConnectButton.Add_Click({
         #$RemediationScriptsButton.IsEnabled = $true
         $PlatformScriptsButton.IsEnabled = $true
         $ConnectButton.IsEnabled = $false
+        $ConnectEnterpriseAppButton.IsEnabled = $false
         $LogoutButton.IsEnabled = $true
         $RefreshButton.IsEnabled = $true
         $SearchFieldComboBox.IsEnabled = $true
