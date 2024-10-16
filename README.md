@@ -9,6 +9,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 ## Features
 
 - **Connect to Microsoft Graph:** Authenticate with necessary scopes.
+- **Connect to Microsoft Graph With Enterprise App:** Authenticate with necessary scopes.
 - **Tenant Information:** Display tenant details and signed-in user information.
 - **Policy and App Management:** View and manage policies and apps with their assignments.
 - **Supported Assignments:**
@@ -36,6 +37,8 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Document Assignments to Markdown File
     - Selected Policies / applications
     - Bulk Export of Policy Type
+- **Edit DisplayName & Description:** Easely eddit your policy/app names and descriptions
+- **Refresh:** Update and Refresh your security groups and policies/apps
 - **Logging:** Detailed logging for all major actions and error handling.
 
 ## Prerequisites
