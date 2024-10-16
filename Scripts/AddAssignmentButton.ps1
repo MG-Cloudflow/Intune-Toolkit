@@ -108,6 +108,13 @@ $AddAssignmentButton.Add_Click({
                                     androidManagedStoreAppTrackIds = @()
                                     autoUpdateMode = "default"
                                 }
+                            }elseif ($application.'@odata.type' -eq "#microsoft.graph.winGetApp"){
+                                $settings = @{
+                                    '@odata.type' = "$($application.'@odata.type')AssignmentSettings"
+                                    notifications = "showAll"
+                                    installTimeSettings = $null
+                                    restartSettings = $null
+                                }
                             }else {
                                 $settings = @{
                                     '@odata.type' = "$($application.'@odata.type')AssignmentSettings"

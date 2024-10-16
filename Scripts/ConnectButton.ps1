@@ -19,9 +19,15 @@ $ConnectButton.Add_Click({
     try {
         Write-IntuneToolkitLog "Starting connection to Microsoft Graph" -component "Connect-Button" -file "ConnectButton.ps1"
         
-        # Connect to Microsoft Graph
-        Connect-MgGraph -Scopes "User.Read.All", "Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All, DeviceManagementApps.ReadWrite.All"
-        Write-IntuneToolkitLog "Successfully connected to Microsoft Graph" -component "Connect-Button" -file "ConnectButton.ps1"
+        # Use interactive login with specific scopes
+        $authParams = @{
+            interactive = $true
+            Scopes = @("User.Read.All", "Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All", "DeviceManagementApps.ReadWrite.All")
+        }
+
+        # Call Connect-ToMgGraph.ps1 with the interactive login and custom scopes
+        .\Scripts\Connect-ToMgGraph.ps1 @authParams
+        Write-IntuneToolkitLog "Successfully connected to Microsoft Graph using interactive login with specified scopes" -component "Connect-Button" -file "ConnectButton.ps1"
 
         # Get tenant information
         $tenant = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization" -Method GET
@@ -38,6 +44,7 @@ $ConnectButton.Add_Click({
         # Update UI elements
         $StatusText.Text = "Please select a policy type."
         $PolicyDataGrid.Visibility = "Visible"
+        $RenameButton.IsEnabled = $true
         $DeleteAssignmentButton.IsEnabled = $true
         $AddAssignmentButton.IsEnabled = $true
         $BackupButton.IsEnabled = $true
@@ -52,6 +59,7 @@ $ConnectButton.Add_Click({
         #$RemediationScriptsButton.IsEnabled = $true
         $PlatformScriptsButton.IsEnabled = $true
         $ConnectButton.IsEnabled = $false
+        $ConnectEnterpriseAppButton.IsEnabled = $false
         $LogoutButton.IsEnabled = $true
         $RefreshButton.IsEnabled = $true
         $SearchFieldComboBox.IsEnabled = $true

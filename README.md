@@ -9,6 +9,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 ## Features
 
 - **Connect to Microsoft Graph:** Authenticate with necessary scopes.
+- **Connect to Microsoft Graph With Enterprise App:** Authenticate with necessary scopes.
 - **Tenant Information:** Display tenant details and signed-in user information.
 - **Policy and App Management:** View and manage policies and apps with their assignments.
 - **Supported Assignments:**
@@ -36,61 +37,9 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Document Assignments to Markdown File
     - Selected Policies / applications
     - Bulk Export of Policy Type
+- **Edit DisplayName & Description:** Easely eddit your policy/app names and descriptions
+- **Refresh:** Update and Refresh your security groups and policies/apps
 - **Logging:** Detailed logging for all major actions and error handling.
-
-## Release Notes
-### v0.2.5-alpha
-- **Performance Upgrades**
-  - Enhanced performance of security group fetching by adding additional filters to Graph API calls, reducing load times.
-  - Introduced a manual sync button for on-demand updates of security groups.
-  - Removed automatic security group fetching when loading policies/applications to prevent delays in large tenants.
-    - Security groups are now loaded at startup or through manual refresh. 
-
-### v0.2.4-alpha
-- **BugFix**
-  - moved powershell validation to before check microsoft.graph module ->  contribution By thiagogbeier
-
-### v0.2.3-alpha
-- **Features**
-  - added log file to $env: as %temp% location under current user context/scope -> contribution By thiagogbeier
-  - added the powershell 7.0.0 as minimum requirement as per in documentation validation with end-user notification to upgrade or open powershell 7.x -> contribution By thiagogbeier
- 
-### v0.2.2-alpha
-- **Features**
-  - Assignments
-    - Managed Google Play Store App
-    - IOS Store App
-  - Platform Inormation
-  - Update to "Export to Mark Down (MD)"
-    - Table of Contents
-    - Platfrom Information  
- 
-### v0.2.1-alpha
-- **Bug Fixes**
-  - Assignment Issue with Device confiuration poilicy (Settings Catalog)
-
-### v0.2.0-alpha
-- **Features**
-  - Mac OS Scripts
-  - App Configuration Policies
-  - Document To markdown
-    - Selected Policies / applications
-    - Bulk Export of Policy Type
-  - Basic Version Check to latest Release Version on Github
-- **Bug Fixes**
-  - Build in safety when no filters Exists ( Second Attempt ;-) )
-
-### v0.1.1-alpha
-- **Features**
-  - Platform scripts
-  - Export To CSV
-- **UI**
-  - Updated UI
-  - Remove install intent column in policy Context
-- **Bug Fixes**
-  -Build in safety when no filters Exists
-  -Checks for MS Graph Module
-
 
 ## Prerequisites
 

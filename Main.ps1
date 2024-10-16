@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.5-alpha"
+$currentVersion = "v0.2.6-alpha"
 
 #region log file
 # Define the log file path
@@ -115,11 +115,14 @@ function Show-Window {
 
         # Load UI elements
         $TenantInfo = $Window.FindName("TenantInfo")
+        $StatusText = $Window.FindName("StatusText")
         $ConnectButton = $Window.FindName("ConnectButton")
+        $ConnectEnterpriseAppButton = $Window.FindName("ConnectEnterpriseAppButton")
         $LogoutButton = $Window.FindName("LogoutButton")
         $RefreshButton = $Window.FindName("RefreshButton")
         $StatusText = $Window.FindName("StatusText")
         $PolicyDataGrid = $Window.FindName("PolicyDataGrid")
+        $RenameButton = $Window.FindName("RenameButton")
         $DeleteAssignmentButton = $Window.FindName("DeleteAssignmentButton")
         $AddAssignmentButton = $Window.FindName("AddAssignmentButton")
         $BackupButton = $Window.FindName("BackupButton")
@@ -144,7 +147,9 @@ function Show-Window {
 
         # Import external script files
         . .\Scripts\Functions.ps1
+        . .\Scripts\Connect-ToMgGraph.ps1
         . .\Scripts\ConnectButton.ps1
+        . .\Scripts\ConnectEnterpriseAppButton.ps1
         . .\Scripts\LogoutButton.ps1
         . .\Scripts\RefreshButton.ps1
         . .\Scripts\ConfigurationPoliciesButton.ps1
@@ -161,6 +166,7 @@ function Show-Window {
         . .\Scripts\Show-SelectionDialog.ps1
         . .\Scripts\SearchButton.ps1
         . .\Scripts\RemediationScriptsButton.ps1
+        . .\Scripts\RenameButton.ps1
         . .\Scripts\PlatformScriptsButton.ps1
         . .\Scripts\AppConfigButton.ps1
         . .\Scripts\MacosScriptsButton.ps1
