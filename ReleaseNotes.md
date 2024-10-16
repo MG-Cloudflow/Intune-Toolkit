@@ -6,11 +6,13 @@
 - **Features**
   - Editing Policy Names
   - Editing Policy Description
-  - Implementing Connect-ToMgGraph -> Created By thiagogbeier
+  - Implementing Connect-ToMgGraph -> Created By thiagogbeier https://github.com/thiagogbeier/Connect-To-MgGraph
     - Implemented Intune Toolkit Logging
     - Optimizing Ms Graph Module Detection & Installation
     - Implemented Interactive Logon
     - Implemented App Registration Logon
+- **BugFix**
+  - Fixed issue with assignments of Microsoft Store app (new) => Issue #25
 - **Other**
   - Added A CODE OF CONDUCT
   - Added CONTRIBUTION GUIDELINES

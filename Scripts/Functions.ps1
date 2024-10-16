@@ -28,6 +28,7 @@ function Get-AllSecurityGroups {
         Write-IntuneToolkitLog "Fetching all security groups with pagination from $url" -component "Get-AllSecurityGroups" -file "Functions.ps1"
         $allGroups = Get-GraphData -url $url
         Write-IntuneToolkitLog "Successfully fetched all security groups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
+        # Return the full list of groups
         return $allGroups
     } catch {
         $errorMessage = "Failed to get all security groups: $($_.Exception.Message)"
