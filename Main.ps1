@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.5-alpha"
+$currentVersion = "v0.2.6-alpha"
 
 #region log file
 # Define the log file path
@@ -115,6 +115,7 @@ function Show-Window {
 
         # Load UI elements
         $TenantInfo = $Window.FindName("TenantInfo")
+        $StatusText = $Window.FindName("StatusText")
         $ConnectButton = $Window.FindName("ConnectButton")
         $ConnectEnterpriseAppButton = $Window.FindName("ConnectEnterpriseAppButton")
         $LogoutButton = $Window.FindName("LogoutButton")

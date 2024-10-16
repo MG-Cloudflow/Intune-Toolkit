@@ -18,6 +18,7 @@ v1.0.1 - Added prerequisites check, added devicecode and interactive logon param
 <#
 .SYNOPSIS
     This script connects to Microsoft Graph using different authentication methods, including Interactive, Device Code, App Secret, Certificate Thumbprint, and specific scopes.
+    Maxime Guillemin used the script and adapted it for use in Intune-toolkit. All the main logic is by Thiago Beier. Date of change: 15/10/2024
 
 .DESCRIPTION
     This PowerShell script provides three modes of authentication with Microsoft Graph:
@@ -99,91 +100,99 @@ param (
 )
 
 #region PowerShell modules and NuGet
-function Install-GraphModules {
-    #Get NuGet
-    if (-not (Get-PackageProvider NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
-        try {
-            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force:$true | Out-Null
-            Write-Host "Installed PackageProvider NuGet"
-        }
-        catch {
-            Write-Warning "Error installing provider NuGet, exiting..."
-            return
-        }
-    }
-
-    #Get Graph Authentication modules (and dependencies)
+function Install-GraphModules {   
+    # Define required modules
     $modules = @{
         'Microsoft Graph Authentication' = 'Microsoft.Graph.Authentication'
         'MS Graph Groups'                = 'Microsoft.Graph.Groups'
         'MS Graph Identity Management'   = 'Microsoft.Graph.Identity.DirectoryManagement'
         'MS Graph Users'                 = 'Microsoft.Graph.Users'
+        'MS Graph Compliance'            = 'Microsoft.Graph.Compliance'
+        'MS Graph Applications'          = 'Microsoft.Graph.Applications'
+        'MS Graph WindowsUpdates'        = 'Microsoft.Graph.WindowsUpdates'
     }
 
-    #Set PSGallery as Trusted
-    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
+    # Check if modules already exist if not check if NuGet is installed and install modules
     foreach ($module in $modules.GetEnumerator()) {
         if (Get-Module -Name $module.value -ListAvailable -ErrorAction SilentlyContinue) {
-            Import-Module -Name $module.value
+            Write-IntuneToolkitLog "Module $($module.Value) is already installed." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
         }
         else {
             try {
-                Install-Module $module.Value -ErrorAction Stop
-                Write-Host ("Installing and importing PowerShell module {0}" -f $module.value) -ErrorAction Stop
-                Import-Module -Name $module.value -ErrorAction Stop
+                # Check if NuGet is installed
+                if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
+                    try {
+                        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
+                        Write-Host "Installed PackageProvider NuGet"
+                        Write-IntuneToolkitLog "Installed PackageProvider NuGet" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    }
+                    catch {
+                        Write-Warning "Error installing provider NuGet, exiting..."
+                        Write-IntuneToolkitLog "Error installing provider NuGet, exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                        return
+                    }
+                }
+
+                # Set PSGallery as a trusted repository if not already
+                if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+                    Write-IntuneToolkitLog "Set PSGallery as a trusted repository" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                }
+
+                Write-Host ("Installing and importing PowerShell module {0}" -f $module.Value)
+                Install-Module -Name $module.Value -Force -ErrorAction Stop
+                Import-Module -Name $module.Value -ErrorAction Stop
+                Write-IntuneToolkitLog "Successfully installed and imported PowerShell module $($module.Value)" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
             }
             catch {
-                Write-Warning ("Error Installing or importing Powershell module {0}, exiting..." -f $module.value)
+                Write-Warning ("Error installing or importing PowerShell module {0}, exiting..." -f $module.Value)
+                Write-IntuneToolkitLog "Error installing or importing PowerShell module $($module.Value), exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
                 return
             }
         }
     }
-}     
-
+}
+  
 #endregion
 
-#If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
+# If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
 if ($entraapp) {
-    #Call the function
-    #Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
-    #Install-GraphModules
-
     if (-not $AppId) {
+        Write-IntuneToolkitLog "Error: The -AppId parameter is required when using -entraapp." -component "ParameterCheck" -file "ConnectButton.ps1"
         throw "Error: The -AppId parameter is required when using -entraapp."
     }
     if (-not $AppSecret) {
+        Write-IntuneToolkitLog "Error: The -AppSecret parameter is required when using -entraapp." -component "ParameterCheck" -file "ConnectButton.ps1"
         throw "Error: The -AppSecret parameter is required when using -entraapp."
     }
     if (-not $Tenant) {
+        Write-IntuneToolkitLog "Error: The -Tenant parameter is required when using -entraapp." -component "ParameterCheck" -file "ConnectButton.ps1"
         throw "Error: The -Tenant parameter is required when using -entraapp."
     }
 }
 
-#If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
+# If -usessl is provided, enforce that AppId, TenantId, and CertificateThumbprint are required
 if ($usessl) {
-    #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
-    Install-GraphModules
-
     if (-not $AppId) {
+        Write-IntuneToolkitLog "Error: The -AppId parameter is required when using -usessl." -component "ParameterCheck" -file "ConnectButton.ps1"
         throw "Error: The -AppId parameter is required when using -usessl."
     }
     if (-not $TenantId) {
+        Write-IntuneToolkitLog "Error: The -TenantId parameter is required when using -usessl." -component "ParameterCheck" -file "ConnectButton.ps1"
         throw "Error: The -TenantId parameter is required when using -usessl."
     }
     if (-not $CertificateThumbprint) {
+        Write-IntuneToolkitLog "Error: The -CertificateThumbprint parameter is required when using -usessl." -component "ParameterCheck" -file "ConnectButton.ps1"
         throw "Error: The -CertificateThumbprint parameter is required when using -usessl."
     }
 }
 
-#Check for -scopesonly parameter
+# Check for -scopesonly parameter
 if ($scopesonly) {
-    #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Write-IntuneToolkitLog "Checking NuGet and PowerShell dependencies for -scopesonly parameter" -component "ScopesOnly" -file "ConnectButton.ps1"
     Install-GraphModules
 
-    #region scopesReadOnly ask for authentication
+    # region scopesReadOnly ask for authentication
     $scopesReadOnly = @(
         "Chat.ReadWrite.All"
         "Directory.Read.All"
@@ -192,6 +201,7 @@ if ($scopesonly) {
     
     try {
         Connect-MgGraph -Scopes $scopesReadOnly -ErrorAction Stop
+        Write-IntuneToolkitLog "Successfully connected to Microsoft Graph using scopes only" -component "ScopesOnly" -file "ConnectButton.ps1"
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
@@ -199,23 +209,18 @@ if ($scopesonly) {
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
+        Write-IntuneToolkitLog "Error connecting to Microsoft Graph using scopes only, exiting..." -component "ScopesOnly" -file "ConnectButton.ps1"
         return
     }
-    #endregion
+    # endregion
 }
 
 # Check for -entraapp parameter
 if ($entraapp) {
-    #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Write-IntuneToolkitLog "Checking NuGet and PowerShell dependencies for -entraapp parameter" -component "EntraApp" -file "ConnectButton.ps1"
     Install-GraphModules
 
-    #region app secret
-    #Populate with the App Registration details and Tenant ID to validate manually
-    #$appid = ''
-    #$tenantid = ''
-    #$appsecret = ''
-    $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).Major
+    # region app secret
     $body = @{
         grant_type    = "client_credentials"
         client_id     = $AppId
@@ -225,100 +230,89 @@ if ($entraapp) {
 
     $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/token" -Body $body
     $accessToken = $response.access_token
+    $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).Major
+
     if ($version -eq 2) {
-        Write-Host "Version 2 module detected"
         $accesstokenfinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
-    }
-    else {
-        Write-Host "Version 1 Module Detected"
+    } else {
         Select-MgProfile -Name Beta
         $accesstokenfinal = $accessToken
     }
 
     try {
         Connect-MgGraph -AccessToken $accesstokenfinal -ErrorAction Stop
+        Write-IntuneToolkitLog "Successfully connected to tenant $Tenant using app-based authentication" -component "EntraApp" -file "ConnectButton.ps1"
         Write-Host "Connected to tenant $Tenant using app-based authentication"
     }
     catch {
         Write-Warning "Error connecting to tenant $Tenant using app-based authentication, exiting..."
+        Write-IntuneToolkitLog "Error connecting to tenant $Tenant using app-based authentication, exiting..." -component "EntraApp" -file "ConnectButton.ps1"
         return
     }
 
-    #Get-MgContext
     Write-Host "This session current permissions `n" -ForegroundColor cyan
     Get-MgContext | Select-Object -ExpandProperty Scopes
     Write-Host "`n"
     Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
-    #Disconnect-MgGraph
-    #endregion
 }
 
-#Check for -usessl parameter
+# Check for -usessl parameter
 if ($usessl) {
-    #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Write-IntuneToolkitLog "Checking NuGet and PowerShell dependencies for -usessl parameter" -component "UseSSL" -file "ConnectButton.ps1"
     Install-GraphModules
 
     try {
-        #region ssl certificate authentication
         Connect-MgGraph -ClientId $AppId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint -ErrorAction Stop
-        #Get-MgContext
+        Write-IntuneToolkitLog "Successfully connected to Microsoft Graph using certificate-based authentication" -component "UseSSL" -file "ConnectButton.ps1"
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
-        #(Get-MgContext).scopes
         Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
-        #Disconnect-MgGraph
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
+        Write-IntuneToolkitLog "Error connecting to Microsoft Graph using certificate-based authentication, exiting..." -component "UseSSL" -file "ConnectButton.ps1"
         return
     } 
-    #endregion
 }
 
-#Check for -interactive parameter
+# Check for -interactive parameter
 if ($interactive) {
-    #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Write-IntuneToolkitLog "Checking NuGet and PowerShell dependencies for -interactive parameter" -component "Interactive" -file "ConnectButton.ps1"
     Install-GraphModules
     
     try {
         Connect-MgGraph -Scopes $Scopes -ErrorAction Stop
+        Write-IntuneToolkitLog "Successfully connected to Microsoft Graph using interactive login with specified scopes" -component "Interactive" -file "ConnectButton.ps1"
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
-        #(Get-MgContext).scopes
         Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
+        Write-IntuneToolkitLog "Error connecting to Microsoft Graph using interactive login, exiting..." -component "Interactive" -file "ConnectButton.ps1"
         return
     }
 }
 
-#Check for -devicecode parameter
+# Check for -devicecode parameter
 if ($devicecode) {
-    #Call the function
-    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Write-IntuneToolkitLog "Checking NuGet and PowerShell dependencies for -devicecode parameter" -component "DeviceCode" -file "ConnectButton.ps1"
     Install-GraphModules
 
     try {
-        #Start Browser
         Start-Process https://microsoft.com/devicelogin -ErrorAction Stop
-
-        #Wait for the user to enter the code provided on Screen to authenticate on opened Browser (Default)
         Connect-MgGraph -UseDeviceCode -Scopes $Scopes -ErrorAction Stop
-    
+        Write-IntuneToolkitLog "Successfully connected to Microsoft Graph using device code authentication" -component "DeviceCode" -file "ConnectButton.ps1"
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
-
-        #(Get-MgContext).scopes
         Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
+        Write-IntuneToolkitLog "Error connecting to Microsoft Graph using device code authentication, exiting..." -component "DeviceCode" -file "ConnectButton.ps1"
         return
     }
 }
