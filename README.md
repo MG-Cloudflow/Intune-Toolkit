@@ -47,6 +47,11 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
 - Microsoft Graph PowerShell SDK.
 - Windows Presentation Framework (WPF) for the GUI components.
 - Access to Microsoft Intune with the necessary permissions.
+- Ms Graph Permissions
+  - `User.Read.All`
+  - `Directory.Read.All`
+  - `DeviceManagementConfiguration.ReadWrite.All`
+  - `DeviceManagementApps.ReadWrite.All`
 
 ## Installation
 
@@ -56,12 +61,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
     cd Intune-Toolkit
     ```
 
-2. Install the Microsoft Graph PowerShell SDK:
-    ```sh
-    Install-Module Microsoft.Graph -Scope CurrentUser
-    ```
-
-3. Ensure you have the required assemblies and permissions to run the toolkit.
+2. Ensure you have the required assemblies and permissions to run the toolkit.
 
 ## Usage
 

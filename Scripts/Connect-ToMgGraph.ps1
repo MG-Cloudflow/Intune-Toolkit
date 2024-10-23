@@ -100,54 +100,102 @@ param (
 )
 
 #region PowerShell modules and NuGet
-function Install-GraphModules {   
+# Load the required assembly for GUI popups
+#Add-Type -AssemblyName PresentationFramework
+
+# Path to the XAML popup file
+$popupXamlFilePath = ".\XML\ModuleInstallPopup.xaml"
+
+# Function to show a WPF confirmation popup window for module installation
+function Show-InstallModulePopup {
+    param (
+        [string]$moduleName
+    )
+
+    # Read the XAML from the file
+    [xml]$xaml = Get-Content $popupXamlFilePath
+
+    # Create the window from XAML
+    $xamlReader = New-Object System.Xml.XmlNodeReader $xaml
+    $window = [Windows.Markup.XamlReader]::Load($xamlReader)
+
+    # Dynamically set the message to include the missing module name
+    $textBlock = $window.FindName("ModuleInstallMessage")
+    $textBlock.Text = "The module '$moduleName' is not installed. Do you want to install it?"
+
+    # Add event handlers for buttons
+    $okButton = $window.FindName("OKButton")
+    $cancelButton = $window.FindName("CancelButton")
+
+    $okButton.Add_Click({
+        $window.DialogResult = $true
+        $window.Close()
+    })
+
+    $cancelButton.Add_Click({
+        $window.DialogResult = $false
+        $window.Close()
+    })
+
+    # Show the window and return the result
+    return $window.ShowDialog()
+}
+
+
+#region PowerShell modules and NuGet
+function Install-GraphModules {
     # Define required modules
     $modules = @{
         'Microsoft Graph Authentication' = 'Microsoft.Graph.Authentication'
-        'MS Graph Groups'                = 'Microsoft.Graph.Groups'
-        'MS Graph Identity Management'   = 'Microsoft.Graph.Identity.DirectoryManagement'
-        'MS Graph Users'                 = 'Microsoft.Graph.Users'
-        'MS Graph Compliance'            = 'Microsoft.Graph.Compliance'
-        'MS Graph Applications'          = 'Microsoft.Graph.Applications'
-        'MS Graph WindowsUpdates'        = 'Microsoft.Graph.WindowsUpdates'
     }
 
-    # Check if modules already exist if not check if NuGet is installed and install modules
     foreach ($module in $modules.GetEnumerator()) {
+        # Check if the module is already installed
         if (Get-Module -Name $module.value -ListAvailable -ErrorAction SilentlyContinue) {
             Write-IntuneToolkitLog "Module $($module.Value) is already installed." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
         }
         else {
-            try {
-                # Check if NuGet is installed
-                if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
-                    try {
-                        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
-                        Write-Host "Installed PackageProvider NuGet"
-                        Write-IntuneToolkitLog "Installed PackageProvider NuGet" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                    }
-                    catch {
-                        Write-Warning "Error installing provider NuGet, exiting..."
-                        Write-IntuneToolkitLog "Error installing provider NuGet, exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                        return
-                    }
-                }
+            # Show the install confirmation popup
+            $result = Show-InstallModulePopup -moduleName $module.Name
 
-                # Set PSGallery as a trusted repository if not already
-                if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-                    Write-IntuneToolkitLog "Set PSGallery as a trusted repository" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                }
+            # If the user clicks OK, proceed with the installation
+            if ($result -eq $true) {
+                try {
+                    # Check if NuGet is installed
+                    if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
+                        try {
+                            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
+                            Write-Host "Installed PackageProvider NuGet"
+                            Write-IntuneToolkitLog "Installed PackageProvider NuGet" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                        }
+                        catch {
+                            Write-Warning "Error installing provider NuGet, exiting..."
+                            Write-IntuneToolkitLog "Error installing provider NuGet, exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                            return
+                        }
+                    }
 
-                Write-Host ("Installing and importing PowerShell module {0}" -f $module.Value)
-                Install-Module -Name $module.Value -Force -ErrorAction Stop
-                Import-Module -Name $module.Value -ErrorAction Stop
-                Write-IntuneToolkitLog "Successfully installed and imported PowerShell module $($module.Value)" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    # Set PSGallery as a trusted repository if not already
+                    if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+                        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+                        Write-IntuneToolkitLog "Set PSGallery as a trusted repository" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    }
+
+                    Write-Host ("Installing and importing PowerShell module {0}" -f $module.Value)
+                    Install-Module -Name $module.Value -Force -ErrorAction Stop
+                    Import-Module -Name $module.Value -ErrorAction Stop
+                    Write-IntuneToolkitLog "Successfully installed and imported PowerShell module $($module.Value)" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                }
+                catch {
+                    Write-Warning ("Error installing or importing PowerShell module {0}, exiting..." -f $module.Value)
+                    Write-IntuneToolkitLog "Error installing or importing PowerShell module $($module.Value), exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    return
+                }
             }
-            catch {
-                Write-Warning ("Error installing or importing PowerShell module {0}, exiting..." -f $module.Value)
-                Write-IntuneToolkitLog "Error installing or importing PowerShell module $($module.Value), exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                return
+            else {
+                # If the user cancels, log and close the script
+                Write-IntuneToolkitLog "User canceled installation of module $($module.Value)." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                Exit
             }
         }
     }

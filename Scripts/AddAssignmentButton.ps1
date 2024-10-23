@@ -79,64 +79,95 @@ $AddAssignmentButton.Add_Click({
                             }
                             intent = $selection.Intent
                         }
-                    
+
                         if ($selection.Filter) {
                             $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $selection.Filter.Tag
                             $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $selection.FilterType
                         }
-                        $isIosDevice = $application.applicableDeviceType.iPad -or $application.applicableDeviceType.iPhoneAndIPod
 
-                    
                         if ($selection.AssignmentType -ne "Exclude") {
-                            if ($application.'@odata.type' -eq "#microsoft.graph.iosStoreApp") {
-                                $settings = @{
-                                    "@odata.type" = "$($application.'@odata.type')AssignmentSettings"
-                                    vpnConfigurationId = $null
-                                    uninstallOnDeviceRemoval = $null
-                                    isRemovable = $null
-                                    preventManagedAppBackup = $null
+                            $appODataType = $application.'@odata.type'
+
+                            switch ($appODataType) {
+                                "#microsoft.graph.androidForWorkApp" {
+                                    $settings = Get-AndroidForWorkAppAssignmentSettings -ODataType $appODataType
                                 }
-                                if ($selection.Intent -eq "required") {
-                                    $settings.uninstallOnDeviceRemoval = $false
-                                    $settings.isRemovable = $true
-                                } elseif ($selection.Intent -eq "available" -or $selection.Intent -eq "availableWithoutEnrollment") {
-                                    $settings.uninstallOnDeviceRemoval = $false
+                                "#microsoft.graph.androidLobApp" {
+                                    $settings = Get-AndroidLobAppAssignmentSettings -ODataType $appODataType
                                 }
-                            } elseif($application.'@odata.type' -eq "#microsoft.graph.androidManagedStoreApp"){
-                                $settings = @{
-                                    "@odata.type" = "$($application.'@odata.type')AssignmentSettings"
-                                    androidManagedStoreAppTrackIds = @()
-                                    autoUpdateMode = "default"
+                                "#microsoft.graph.androidManagedStoreApp" {
+                                    $settings = Get-AndroidManagedStoreAppAssignmentSettings -ODataType $appODataType
                                 }
-                            }elseif ($application.'@odata.type' -eq "#microsoft.graph.winGetApp"){
-                                $settings = @{
-                                    '@odata.type' = "$($application.'@odata.type')AssignmentSettings"
-                                    notifications = "showAll"
-                                    installTimeSettings = $null
-                                    restartSettings = $null
+                                "#microsoft.graph.androidStoreApp" {
+                                    $settings = Get-AndroidStoreAppAssignmentSettings -ODataType $appODataType
                                 }
-                            }else {
-                                $settings = @{
-                                    '@odata.type' = "$($application.'@odata.type')AssignmentSettings"
-                                    notifications = "showAll"
-                                    installTimeSettings = $null
-                                    restartSettings = $null
-                                    deliveryOptimizationPriority = "notConfigured"
+                                "#microsoft.graph.iosLobApp" {
+                                    $settings = Get-IosLobAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.iosStoreApp" {
+                                    $settings = Get-IosStoreAppAssignmentSettings -ODataType $appODataType -Intent $selection.Intent
+                                }
+                                "#microsoft.graph.iosVppApp" {
+                                    $settings = Get-IosVppAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.macOSDmgApp" {
+                                    $settings = Get-MacOSDmgAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.macOSLobApp" {
+                                    $settings = Get-MacOSLobAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.macOSPkgApp" {
+                                    $settings = Get-MacOSPkgAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.managedAndroidLobApp" {
+                                    $settings = Get-ManagedAndroidLobAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.managedIOSLobApp" {
+                                    $settings = Get-ManagedIosLobAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.managedMobileLobApp" {
+                                    $settings = Get-ManagedMobileLobAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.microsoftStoreForBusinessApp" {
+                                    $settings = Get-MicrosoftStoreForBusinessAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.win32LobApp" {
+                                    $settings = Get-Win32LobAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.windowsAppX" {
+                                    $settings = Get-WindowsAppXAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.windowsMobileMSI" {
+                                    $settings = Get-WindowsMobileMSIAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.windowsStoreApp" {
+                                    $settings = Get-WindowsStoreAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.windowsUniversalAppX" {
+                                    $settings = Get-WindowsUniversalAppXAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.windowsWebApp" {
+                                    $settings = Get-WindowsWebAppAssignmentSettings -ODataType $appODataType
+                                }
+                                "#microsoft.graph.winGetApp" {
+                                    $settings = Get-WinGetAppAssignmentSettings -ODataType $appODataType
+                                }
+                                default {
+                                    $settings = Get-DefaultAppAssignmentSettings -ODataType $appODataType
                                 }
                             }
-                    
+
                             $newAssignment.settings = $settings
                         }
-                    
+
                         $assignments += $newAssignment
-                    
+
                         # Create the body object
                         $bodyObject = @{
                             mobileAppAssignments = $assignments
                         }
                     }
-                    elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts")
-                    {
+                    elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts") {
                         $newAssignment = @{
                             target = @{
                                 '@odata.type' = $targetType
