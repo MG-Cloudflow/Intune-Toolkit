@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.6-alpha"
+$currentVersion = "v0.2.7-alpha"
 
 #region log file
 # Define the log file path
@@ -89,14 +89,6 @@ if ($PScurrentVersion -lt $PSrequiredVersion) {
 	#$errorMessage = "You are running PowerShell version $currentVersion. All good!"
 	Write-IntuneToolkitLog $errorMessage
 }
-
-# Check if Microsoft.Graph module is installed
-<# if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
-    $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
-    [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    Write-IntuneToolkitLog $errorMessage
-    exit 1
-} #>
 
 # Function to display the main window
 function Show-Window {
