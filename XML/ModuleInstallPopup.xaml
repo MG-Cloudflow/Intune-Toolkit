@@ -24,8 +24,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Confirmation Text -->
-        <TextBlock Grid.Row="0" Text="Do you want to install the missing module?" 
+        <!-- Confirmation Text that will display the missing module name -->
+        <TextBlock x:Name="ModuleInstallMessage" Grid.Row="0" 
                    HorizontalAlignment="Center" VerticalAlignment="Center" 
                    FontSize="16" FontFamily="Segoe UI" Margin="0,20,0,10"/>
 

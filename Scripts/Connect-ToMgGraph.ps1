@@ -108,12 +108,20 @@ $popupXamlFilePath = ".\XML\ModuleInstallPopup.xaml"
 
 # Function to show a WPF confirmation popup window for module installation
 function Show-InstallModulePopup {
+    param (
+        [string]$moduleName
+    )
+
     # Read the XAML from the file
     [xml]$xaml = Get-Content $popupXamlFilePath
-    
+
     # Create the window from XAML
     $xamlReader = New-Object System.Xml.XmlNodeReader $xaml
     $window = [Windows.Markup.XamlReader]::Load($xamlReader)
+
+    # Dynamically set the message to include the missing module name
+    $textBlock = $window.FindName("ModuleInstallMessage")
+    $textBlock.Text = "The module '$moduleName' is not installed. Do you want to install it?"
 
     # Add event handlers for buttons
     $okButton = $window.FindName("OKButton")
@@ -133,6 +141,7 @@ function Show-InstallModulePopup {
     return $window.ShowDialog()
 }
 
+
 #region PowerShell modules and NuGet
 function Install-GraphModules {
     # Define required modules
@@ -147,7 +156,7 @@ function Install-GraphModules {
         }
         else {
             # Show the install confirmation popup
-            $result = Show-InstallModulePopup
+            $result = Show-InstallModulePopup -moduleName $module.Name
 
             # If the user clicks OK, proceed with the installation
             if ($result -eq $true) {
