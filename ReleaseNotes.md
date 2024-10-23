@@ -1,6 +1,14 @@
 # Intune Toolkit
 
 ## Release Notes
+### v0.2.7-alpha
+- **Code Optimization**
+  - **Assignments**
+    - Refactored assignment logic by splitting the assignment button handling into a separate function file for better maintainability and clarity.
+    - Prepared the structure to support new application types in future releases.
+  - **Modules**
+    - Optimized module installations to include only the essential Graph module: `Microsoft.Graph.Authentication`.
+    - Added a confirmation popup that prompts users before installing any required modules, improving user control over the installation process.
 
 ### v0.2.6-alpha
 - **Features**
