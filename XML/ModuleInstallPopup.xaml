@@ -1,0 +1,38 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Intune-Toolkit" Height="200" Width="400" Background="#f3f3f3">
+    <Window.Resources>
+        <Style TargetType="Button" x:Key="BaseButtonStyle">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="#007ACC"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Confirmation Text -->
+        <TextBlock Grid.Row="0" Text="Do you want to install the missing module?" 
+                   HorizontalAlignment="Center" VerticalAlignment="Center" 
+                   FontSize="16" FontFamily="Segoe UI" Margin="0,20,0,10"/>
+
+        <!-- Confirmation Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button x:Name="OKButton" Content="OK" Width="80" Style="{StaticResource BaseButtonStyle}" />
+            <Button x:Name="CancelButton" Content="Cancel" Width="80" Style="{StaticResource BaseButtonStyle}" />
+        </StackPanel>
+    </Grid>
+</Window>

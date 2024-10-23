@@ -100,25 +100,57 @@ param (
 )
 
 #region PowerShell modules and NuGet
-function Install-GraphModules {   
+# Load the required assembly for GUI popups
+#Add-Type -AssemblyName PresentationFramework
+
+# Path to the XAML popup file
+$popupXamlFilePath = ".\XML\ModuleInstallPopup.xaml"
+
+# Function to show a WPF confirmation popup window for module installation
+function Show-InstallModulePopup {
+    # Read the XAML from the file
+    [xml]$xaml = Get-Content $popupXamlFilePath
+    
+    # Create the window from XAML
+    $xamlReader = New-Object System.Xml.XmlNodeReader $xaml
+    $window = [Windows.Markup.XamlReader]::Load($xamlReader)
+
+    # Add event handlers for buttons
+    $okButton = $window.FindName("OKButton")
+    $cancelButton = $window.FindName("CancelButton")
+
+    $okButton.Add_Click({
+        $window.DialogResult = $true
+        $window.Close()
+    })
+
+    $cancelButton.Add_Click({
+        $window.DialogResult = $false
+        $window.Close()
+    })
+
+    # Show the window and return the result
+    return $window.ShowDialog()
+}
+
+#region PowerShell modules and NuGet
+function Install-GraphModules {
     # Define required modules
     $modules = @{
         'Microsoft Graph Authentication' = 'Microsoft.Graph.Authentication'
     }
 
-    # Check if modules already exist if not check if NuGet is installed and install modules
-    # Load the required assembly for GUI popups
     foreach ($module in $modules.GetEnumerator()) {
         # Check if the module is already installed
         if (Get-Module -Name $module.value -ListAvailable -ErrorAction SilentlyContinue) {
             Write-IntuneToolkitLog "Module $($module.Value) is already installed." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
         }
         else {
-            # Create a popup asking for confirmation before installing the module
-            $result = [System.Windows.Forms.MessageBox]::Show("Module $($module.Value) is not installed. Do you want to install it?", "Module Installation", [System.Windows.Forms.MessageBoxButtons]::OKCancel, [System.Windows.Forms.MessageBoxIcon]::Question)
+            # Show the install confirmation popup
+            $result = Show-InstallModulePopup
 
             # If the user clicks OK, proceed with the installation
-            if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+            if ($result -eq $true) {
                 try {
                     # Check if NuGet is installed
                     if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
@@ -158,7 +190,6 @@ function Install-GraphModules {
             }
         }
     }
-
 }
   
 #endregion
