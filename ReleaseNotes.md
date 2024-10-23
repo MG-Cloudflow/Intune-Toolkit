@@ -1,6 +1,4 @@
-# Intune Toolkit
-
-## Release Notes
+# Release Notes
 ### v0.2.7-alpha
 - **Code Optimization**
   - **Assignments**
