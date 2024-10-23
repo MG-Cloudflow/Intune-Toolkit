@@ -107,44 +107,58 @@ function Install-GraphModules {
     }
 
     # Check if modules already exist if not check if NuGet is installed and install modules
+    # Load the required assembly for GUI popups
     foreach ($module in $modules.GetEnumerator()) {
+        # Check if the module is already installed
         if (Get-Module -Name $module.value -ListAvailable -ErrorAction SilentlyContinue) {
             Write-IntuneToolkitLog "Module $($module.Value) is already installed." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
         }
         else {
-            try {
-                # Check if NuGet is installed
-                if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
-                    try {
-                        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
-                        Write-Host "Installed PackageProvider NuGet"
-                        Write-IntuneToolkitLog "Installed PackageProvider NuGet" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                    }
-                    catch {
-                        Write-Warning "Error installing provider NuGet, exiting..."
-                        Write-IntuneToolkitLog "Error installing provider NuGet, exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                        return
-                    }
-                }
+            # Create a popup asking for confirmation before installing the module
+            $result = [System.Windows.Forms.MessageBox]::Show("Module $($module.Value) is not installed. Do you want to install it?", "Module Installation", [System.Windows.Forms.MessageBoxButtons]::OKCancel, [System.Windows.Forms.MessageBoxIcon]::Question)
 
-                # Set PSGallery as a trusted repository if not already
-                if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-                    Write-IntuneToolkitLog "Set PSGallery as a trusted repository" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                }
+            # If the user clicks OK, proceed with the installation
+            if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+                try {
+                    # Check if NuGet is installed
+                    if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
+                        try {
+                            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
+                            Write-Host "Installed PackageProvider NuGet"
+                            Write-IntuneToolkitLog "Installed PackageProvider NuGet" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                        }
+                        catch {
+                            Write-Warning "Error installing provider NuGet, exiting..."
+                            Write-IntuneToolkitLog "Error installing provider NuGet, exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                            return
+                        }
+                    }
 
-                Write-Host ("Installing and importing PowerShell module {0}" -f $module.Value)
-                Install-Module -Name $module.Value -Force -ErrorAction Stop
-                Import-Module -Name $module.Value -ErrorAction Stop
-                Write-IntuneToolkitLog "Successfully installed and imported PowerShell module $($module.Value)" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    # Set PSGallery as a trusted repository if not already
+                    if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+                        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+                        Write-IntuneToolkitLog "Set PSGallery as a trusted repository" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    }
+
+                    Write-Host ("Installing and importing PowerShell module {0}" -f $module.Value)
+                    Install-Module -Name $module.Value -Force -ErrorAction Stop
+                    Import-Module -Name $module.Value -ErrorAction Stop
+                    Write-IntuneToolkitLog "Successfully installed and imported PowerShell module $($module.Value)" -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                }
+                catch {
+                    Write-Warning ("Error installing or importing PowerShell module {0}, exiting..." -f $module.Value)
+                    Write-IntuneToolkitLog "Error installing or importing PowerShell module $($module.Value), exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                    return
+                }
             }
-            catch {
-                Write-Warning ("Error installing or importing PowerShell module {0}, exiting..." -f $module.Value)
-                Write-IntuneToolkitLog "Error installing or importing PowerShell module $($module.Value), exiting..." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
-                return
+            else {
+                # If the user cancels, log and close the script
+                Write-IntuneToolkitLog "User canceled installation of module $($module.Value)." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
+                Exit
             }
         }
     }
+
 }
   
 #endregion
