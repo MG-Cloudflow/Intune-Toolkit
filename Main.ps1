@@ -147,6 +147,7 @@ function Show-Window {
 
         # Import external script files
         . .\Scripts\Functions.ps1
+        . .\Scripts\AssignmentSettingsFunctions.ps1
         . .\Scripts\Connect-ToMgGraph.ps1
         . .\Scripts\ConnectButton.ps1
         . .\Scripts\ConnectEnterpriseAppButton.ps1
