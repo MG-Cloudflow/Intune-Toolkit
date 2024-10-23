@@ -91,12 +91,12 @@ if ($PScurrentVersion -lt $PSrequiredVersion) {
 }
 
 # Check if Microsoft.Graph module is installed
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+<# if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
     $errorMessage = "Microsoft Graph module is not installed. Please install it using 'Install-Module Microsoft.Graph'."
     [System.Windows.Forms.MessageBox]::Show($errorMessage, "Module Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
     Write-IntuneToolkitLog $errorMessage
     exit 1
-}
+} #>
 
 # Function to display the main window
 function Show-Window {

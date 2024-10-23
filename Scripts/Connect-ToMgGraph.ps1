@@ -104,12 +104,6 @@ function Install-GraphModules {
     # Define required modules
     $modules = @{
         'Microsoft Graph Authentication' = 'Microsoft.Graph.Authentication'
-        'MS Graph Groups'                = 'Microsoft.Graph.Groups'
-        'MS Graph Identity Management'   = 'Microsoft.Graph.Identity.DirectoryManagement'
-        'MS Graph Users'                 = 'Microsoft.Graph.Users'
-        'MS Graph Compliance'            = 'Microsoft.Graph.Compliance'
-        'MS Graph Applications'          = 'Microsoft.Graph.Applications'
-        'MS Graph WindowsUpdates'        = 'Microsoft.Graph.WindowsUpdates'
     }
 
     # Check if modules already exist if not check if NuGet is installed and install modules
