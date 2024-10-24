@@ -26,7 +26,7 @@ $AddAssignmentButton.Add_Click({
     Write-IntuneToolkitLog "AddAssignmentButton clicked" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
     try {
-        $selectedPolicies = $PolicyDataGrid.SelectedItems
+        $selectedPolicies = $PolicyDataGrid.SelectedItems | Sort-Object -Unique -Property PolicyId
         if ($selectedPolicies.Count -gt 0) {
             Write-IntuneToolkitLog "Selected policies count: $($selectedPolicies.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
