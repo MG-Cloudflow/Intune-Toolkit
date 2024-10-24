@@ -1,4 +1,8 @@
 # Release Notes
+### v0.2.7.1-alpha
+- **BugFix**
+  - Bulk Selection Assignments When selecting the same policy multiple times gave errors this is now fixed.
+  
 ### v0.2.7-alpha
 - **Code Optimization**
   - **Assignments**
