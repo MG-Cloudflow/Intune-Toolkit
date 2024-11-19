@@ -34,3 +34,6 @@ function Check-LatestVersion {
         Write-IntuneToolkitLog $errorMessage -component "Check-LatestVersion" -file "CheckVersion.ps1"
     }
 }
+
+# Example usage:
+# Check-LatestVersion -currentVersion "0.2.7"
