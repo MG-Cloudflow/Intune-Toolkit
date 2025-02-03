@@ -151,6 +151,8 @@ function Reload-Grid {
         $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($type)?`$filter=(microsoft.graph.managedApp/appAvailability%20eq%20null%20or%20microsoft.graph.managedApp/appAvailability%20eq%20%27lineOfBusiness%27%20or%20isAssigned%20eq%20true)&`$orderby=displayName&`$expand=assignments"
     } elseif ($type -eq "mobileAppConfigurations") {
         $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($type)?`$expand=assignments"
+    } elseif ($type -eq "intents") {
+        $url = "https://graph.microsoft.com/beta/deviceManagement/intents?$expand=assignments"
     } else {
         $url = "https://graph.microsoft.com/beta/deviceManagement/$($type)?`$expand=assignments"
     }
@@ -159,34 +161,29 @@ function Reload-Grid {
 
     # Fetch all security groups and filters
     $allFilters = Get-AllAssignmentFilters
-
-    # Convert lists to hash tables for quick lookup
     $groupLookup = @{}
-    foreach ($group in $global:AllSecurityGroups) {
-        $groupLookup[$group.Id] = $group.DisplayName
-    }
-
+    foreach ($group in $global:AllSecurityGroups) { $groupLookup[$group.Id] = $group.DisplayName }
     $filterLookup = @{}
-    foreach ($filter in $allFilters) {
-        $filterLookup[$filter.Id] = $filter.DisplayName
-    }
+    foreach ($filter in $allFilters) { $filterLookup[$filter.Id] = $filter.DisplayName }
 
-    # Initialize the global variable as an array
     $global:AllPolicyData = @()
     foreach ($policy in $result) {
-        if($type -eq "configurationPolicies"){
+        if ($type -eq "configurationPolicies") {
             $platform = Get-DevicePlatform -OdataType $policy.platforms
-        } elseif($type -eq "mobileApps"){
+        } elseif ($type -eq "mobileApps") {
             $platform = Get-PlatformApps -odataType $policy.'@odata.type'
-        } elseif($type -eq "groupPolicyConfigurations"){
+        } elseif ($type -eq "groupPolicyConfigurations") {
             $platform = "Windows"
-        } elseif($type -eq "deviceManagementScripts"){
+        } elseif ($type -eq "deviceManagementScripts") {
             $platform = "Windows"
-        } elseif($type -eq "deviceShellScripts"){
+        } elseif ($type -eq "deviceShellScripts") {
             $platform = "MacOS"
-        }else {
+        } elseif ($type -eq "intents") {
+            $platform = "Intents"
+        } else {
             $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
         }
+
         if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
@@ -194,32 +191,32 @@ function Reload-Grid {
                     $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] } else { "" }
                     $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
                     $global:AllPolicyData += [PSCustomObject]@{
-                        PolicyId = $policy.id
-                        PolicyName = if ($policy.displayName) { $policy.displayName } else { $policy.name }
+                        PolicyId          = $policy.id
+                        PolicyName        = if ($policy.displayName) { $policy.displayName } else { $policy.name }
                         PolicyDescription = $policy.description
-                        AssignmentType = $assignmentType
-                        GroupDisplayname = $groupDisplayName
-                        GroupId = $assignment.target.groupId
-                        FilterId = $assignment.target.deviceAndAppManagementAssignmentFilterId
+                        AssignmentType    = $assignmentType
+                        GroupDisplayname  = $groupDisplayName
+                        GroupId           = $assignment.target.groupId
+                        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
                         FilterDisplayname = $filterDisplayName
-                        FilterType = $assignment.target.deviceAndAppManagementAssignmentFilterType
-                        InstallIntent = "" # Default empty for non-mobileApps
-                        Platform = $platform
+                        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
+                        InstallIntent     = ""
+                        Platform          = $platform
                     }
                 }
             } else {
                 $global:AllPolicyData += [PSCustomObject]@{
-                    PolicyId = $policy.id
-                    PolicyName = if ($policy.displayName) { $policy.displayName } else { $policy.name }
+                    PolicyId          = $policy.id
+                    PolicyName        = if ($policy.displayName) { $policy.displayName } else { $policy.name }
                     PolicyDescription = $policy.description
-                    AssignmentType = ""
-                    GroupDisplayname = ""
-                    GroupId = ""
-                    FilterId = ""
+                    AssignmentType    = ""
+                    GroupDisplayname  = ""
+                    GroupId           = ""
+                    FilterId          = ""
                     FilterDisplayname = ""
-                    FilterType = ""
-                    InstallIntent = "" # Default empty for non-mobileApps
-                    Platform = $platform
+                    FilterType        = ""
+                    InstallIntent     = ""
+                    Platform          = $platform
                 }
             }
         } elseif ($type -eq "mobileApps") {
@@ -229,32 +226,69 @@ function Reload-Grid {
                     $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] } else { "" }
                     $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
                     $global:AllPolicyData += [PSCustomObject]@{
-                        PolicyId = $policy.id
-                        PolicyName = $policy.displayName
+                        PolicyId          = $policy.id
+                        PolicyName        = $policy.displayName
                         PolicyDescription = $policy.description
-                        AssignmentType = $assignmentType
-                        GroupDisplayname = $groupDisplayName
-                        GroupId = $assignment.target.groupId
-                        FilterId = $assignment.target.deviceAndAppManagementAssignmentFilterId
+                        AssignmentType    = $assignmentType
+                        GroupDisplayname  = $groupDisplayName
+                        GroupId           = $assignment.target.groupId
+                        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
                         FilterDisplayname = $filterDisplayName
-                        FilterType = $assignment.target.deviceAndAppManagementAssignmentFilterType
-                        InstallIntent = if ($assignment.intent) { $assignment.intent } else { "" }
-                        Platform = $platform
+                        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
+                        InstallIntent     = if ($assignment.intent) { $assignment.intent } else { "" }
+                        Platform          = $platform
                     }
                 }
             } else {
                 $global:AllPolicyData += [PSCustomObject]@{
-                    PolicyId = $policy.id
-                    PolicyName = $policy.displayName
+                    PolicyId          = $policy.id
+                    PolicyName        = $policy.displayName
                     PolicyDescription = $policy.description
-                    AssignmentType = ""
-                    GroupDisplayname = ""
-                    GroupId = ""
-                    FilterId = ""
+                    AssignmentType    = ""
+                    GroupDisplayname  = ""
+                    GroupId           = ""
+                    FilterId          = ""
                     FilterDisplayname = ""
-                    FilterType = ""
-                    InstallIntent = ""
-                    Platform = $platform
+                    FilterType        = ""
+                    InstallIntent     = ""
+                    Platform          = $platform
+                }
+            }
+        } elseif ($type -eq "intents") {
+            $assignments = Get-GraphData -url "https://graph.microsoft.com/beta/deviceManagement/intents('$($policy.id)')/assignments"
+            if ($assignments -and $assignments.Count -gt 0) {
+                foreach ($assignment in $assignments) {
+                    $groupDisplayName = if ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) { $groupLookup[$assignment.target.groupId] } else { "" }
+                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] } else { "" }
+                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
+                    $global:AllPolicyData += [PSCustomObject]@{
+                        PolicyId          = $policy.id
+                        PolicyName        = $policy.displayName
+                        PolicyDescription = $policy.description
+                        AssignmentType    = $assignmentType
+                        GroupDisplayname  = $groupDisplayName
+                        GroupId           = $assignment.target.groupId
+                        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
+                        FilterDisplayname = $filterDisplayName
+                        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
+                        InstallIntent     = ""
+                        Platform          = $platform
+                    }
+                }
+            } else {
+                $assignmentStatus = if ($policy.isAssigned) { "Assigned" } else { "Not Assigned" }
+                $global:AllPolicyData += [PSCustomObject]@{
+                    PolicyId          = $policy.id
+                    PolicyName        = $policy.displayName
+                    PolicyDescription = $policy.description
+                    AssignmentType    = $assignmentStatus
+                    GroupDisplayname  = ""
+                    GroupId           = ""
+                    FilterId          = ""
+                    FilterDisplayname = ""
+                    FilterType        = ""
+                    InstallIntent     = ""
+                    Platform          = $platform
                 }
             }
         }
@@ -297,6 +331,7 @@ function Load-PolicyData {
     $ExportToMDButton.IsEnabled = $false
     $RefreshButton.IsEnabled = $false
     $RenameButton.IsEnabled = $false
+    $IntentsButton.IsEnabled = $false
 
     # Load data synchronously
     $result = Reload-Grid -type $policyType
@@ -335,4 +370,5 @@ function Load-PolicyData {
     $ExportToMDButton.IsEnabled = $true
     $RefreshButton.IsEnabled = $true
     $RenameButton.IsEnabled = $true
+    $IntentsButton.IsEnabled = $true
 }
