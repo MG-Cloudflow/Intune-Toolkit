@@ -9,7 +9,7 @@ reloading grid data, and loading policy data. Error handling and logging are imp
 
 .NOTES
 Author: Maxime Guillemin | CloudFlow
-Date: 09/07/2024
+Date: 12/02/2025
 
 
 .EXAMPLE
@@ -87,6 +87,7 @@ function Get-GraphData {
         Write-IntuneToolkitLog $errorMessage -component "Get-GraphData" -file "Functions.ps1"
     }
 }
+
 function Get-PlatformApps {
     param (
         [Parameter(Mandatory = $false)]
@@ -122,6 +123,7 @@ function Get-PlatformApps {
 
     return $platform
 }
+
 function Get-DevicePlatform {
     param (
         [string]$OdataType
@@ -162,9 +164,13 @@ function Reload-Grid {
     # Fetch all security groups and filters
     $allFilters = Get-AllAssignmentFilters
     $groupLookup = @{}
-    foreach ($group in $global:AllSecurityGroups) { $groupLookup[$group.Id] = $group.DisplayName }
+    foreach ($group in $global:AllSecurityGroups) { 
+        $groupLookup[$group.Id] = $group.DisplayName 
+    }
     $filterLookup = @{}
-    foreach ($filter in $allFilters) { $filterLookup[$filter.Id] = $filter.DisplayName }
+    foreach ($filter in $allFilters) { 
+        $filterLookup[$filter.Id] = $filter.DisplayName 
+    }
 
     $global:AllPolicyData = @()
     foreach ($policy in $result) {
@@ -187,9 +193,25 @@ function Reload-Grid {
         if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
-                    $groupDisplayName = if ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) { $groupLookup[$assignment.target.groupId] } else { "" }
-                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] } else { "" }
-                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
+                    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
+                        $groupDisplayName = "All Devices"
+                    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
+                        $groupDisplayName = "All Users"
+                    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
+                        $groupDisplayName = $groupLookup[$assignment.target.groupId]
+                    } else {
+                        $groupDisplayName = ""
+                    }
+                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
+                        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
+                    } else { 
+                        "" 
+                    }
+                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
+                        "Exclude" 
+                    } else { 
+                        "Include" 
+                    }
                     $global:AllPolicyData += [PSCustomObject]@{
                         PolicyId          = $policy.id
                         PolicyName        = if ($policy.displayName) { $policy.displayName } else { $policy.name }
@@ -222,9 +244,25 @@ function Reload-Grid {
         } elseif ($type -eq "mobileApps") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
-                    $groupDisplayName = if ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) { $groupLookup[$assignment.target.groupId] } else { "" }
-                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] } else { "" }
-                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
+                    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
+                        $groupDisplayName = "All Devices"
+                    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
+                        $groupDisplayName = "All Users"
+                    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
+                        $groupDisplayName = $groupLookup[$assignment.target.groupId]
+                    } else {
+                        $groupDisplayName = ""
+                    }
+                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
+                        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
+                    } else { 
+                        "" 
+                    }
+                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
+                        "Exclude" 
+                    } else { 
+                        "Include" 
+                    }
                     $global:AllPolicyData += [PSCustomObject]@{
                         PolicyId          = $policy.id
                         PolicyName        = $policy.displayName
@@ -258,9 +296,25 @@ function Reload-Grid {
             $assignments = Get-GraphData -url "https://graph.microsoft.com/beta/deviceManagement/intents('$($policy.id)')/assignments"
             if ($assignments -and $assignments.Count -gt 0) {
                 foreach ($assignment in $assignments) {
-                    $groupDisplayName = if ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) { $groupLookup[$assignment.target.groupId] } else { "" }
-                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] } else { "" }
-                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
+                    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
+                        $groupDisplayName = "All Devices"
+                    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
+                        $groupDisplayName = "All Users"
+                    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
+                        $groupDisplayName = $groupLookup[$assignment.target.groupId]
+                    } else {
+                        $groupDisplayName = ""
+                    }
+                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
+                        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
+                    } else { 
+                        "" 
+                    }
+                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
+                        "Exclude" 
+                    } else { 
+                        "Include" 
+                    }
                     $global:AllPolicyData += [PSCustomObject]@{
                         PolicyId          = $policy.id
                         PolicyName        = $policy.displayName
