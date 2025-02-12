@@ -1,13 +1,21 @@
 # Release Notes
-### v0.2.7.2-alpha
+
+### v0.2.8.0
 - **New Features**
   - **Device Management Intents**
-    - Added support for Device Management Intents.
-    - Implemented a new `IntentsButton` for loading intents.
-    - Updated assignment retrieval logic to perform per-policy API calls to fetch assignments for intents.
-    - Improved handling of intents where assignments are retrieved separately.
+    - Added comprehensive support for Device Management Intents, enabling you to view and manage intents with detailed assignment data.
+    - Introduced a dedicated `IntentsButton` to easily load and refresh intent policies.
+    - Updated the assignment retrieval logic to perform individual API calls per intent policy, ensuring that even if the assignments are not returned in bulk, they are still fetched accurately.
+    - Enhanced error handling and logging for intent processing, providing clearer diagnostics if an intent fails to load or update.
+  - **Delete Safety**
+    - Implemented a robust confirmation popup for deletion operations. Before any assignment deletion, users now see a detailed overview of the assignments that are about to be removed.
+    - The confirmation dialog displays a summary (including policy IDs and group names) and requires explicit user consent by clicking OK.
+    - This additional safety measure prevents accidental deletion of assignments and improves overall user confidence in the toolkit.
+  - **Assignments to ALL Users and ALL Devices**
+    - Resolved previous issues with assignments targeting “All Users” and “All Devices”. These special assignment types now work as intended, with proper handling in both the UI and the underlying API calls.
 - **Bug Fixes**
   - Fixed issues in assignment processing for intents when no assignments were returned directly.
+  - Addressed bugs causing errors when applying new assignments if the same policy was selected multiple times (see earlier versions for more details).
 
 ### v0.2.7.1-alpha
 - **BugFix**
