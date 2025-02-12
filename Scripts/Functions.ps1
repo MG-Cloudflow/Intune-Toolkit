@@ -179,7 +179,7 @@ function Reload-Grid {
         } elseif ($type -eq "deviceShellScripts") {
             $platform = "MacOS"
         } elseif ($type -eq "intents") {
-            $platform = "Intents"
+            $platform = "Windows"
         } else {
             $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
         }
