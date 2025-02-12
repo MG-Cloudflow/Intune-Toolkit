@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.7.1-alpha"
+$currentVersion = "v0.2.8.0"
 
 #region log file
 # Define the log file path
@@ -125,6 +125,7 @@ function Show-Window {
         $DeviceConfigurationButton = $Window.FindName("DeviceConfigurationButton")
         $ComplianceButton = $Window.FindName("ComplianceButton")
         $AdminTemplatesButton = $Window.FindName("AdminTemplatesButton")
+        $IntentsButton = $Window.FindName("IntentsButton")
         $ApplicationsButton = $Window.FindName("ApplicationsButton")
         $AppConfigButton = $Window.FindName("AppConfigButton")
         $RemediationScriptsButton = $Window.FindName("RemediationScriptsButton")
@@ -163,8 +164,8 @@ function Show-Window {
         . .\Scripts\PlatformScriptsButton.ps1
         . .\Scripts\AppConfigButton.ps1
         . .\Scripts\MacosScriptsButton.ps1
-        # Check for the latest version
-        . .\Scripts\CheckVersion.ps1
+        . .\Scripts\IntentsButton.ps1 # endpoint security policy aka intents
+        . .\Scripts\CheckVersion.ps1 # Check for the latest version of the toolkit
         
 
         Check-LatestVersion -currentVersion $currentVersion

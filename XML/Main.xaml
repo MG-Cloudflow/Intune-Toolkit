@@ -68,6 +68,7 @@
             <Button x:Name="DeviceConfigurationButton" Content="Device Configuration" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="ComplianceButton" Content="Compliance" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="AdminTemplatesButton" Content="Administrative Templates" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="IntentsButton" Content="Endpoint Security" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="ApplicationsButton" Content="Applications" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="AppConfigButton" Content="App configuration policies" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="PlatformScriptsButton" Content="Platform Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
