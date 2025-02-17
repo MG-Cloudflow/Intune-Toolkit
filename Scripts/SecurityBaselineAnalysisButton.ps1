@@ -84,7 +84,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
         
         Write-IntuneToolkitLog "Total merged settings count: $($mergedSettings.Count)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
         
-        # Export merged settings JSON for verification
+<#         # Export merged settings JSON for verification
         $mergedJson = $mergedSettings | ConvertTo-Json -Depth 10
         $tempOutputPath = "C:\output\MERGED.json"
         $tempOutputDir = Split-Path $tempOutputPath
@@ -92,7 +92,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
             New-Item -Path $tempOutputDir -ItemType Directory -Force | Out-Null
         }
         $mergedJson | Out-File -FilePath $tempOutputPath -Encoding UTF8
-        Write-IntuneToolkitLog "Merged settings exported to $tempOutputPath" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+        Write-IntuneToolkitLog "Merged settings exported to $tempOutputPath" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1" #>
         
         # --- Import the 24H2 Baseline ---
         $baselinePath = ".\SupportFiles\24H2.json"
@@ -226,7 +226,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                 $reportLines += "| $description | $readableExpected | **Missing** | N/A | Missing |"
             }
             else {
-                $policyList = ($matches | ForEach-Object { "$($_.PolicyName) ($($_.PolicyId))" }) -join "; "
+                $policyList = ($matches | ForEach-Object { "$($_.PolicyName) " }) -join "; "
                 $actualValuesRaw = ($matches | ForEach-Object { $_.Setting.settingInstance.choiceSettingValue.value }) -join "; "
                 $actualValues = if ($Catalog.Count -gt 0) { ($matches | ForEach-Object { Get-SettingDisplayValue -settingValueId $_.Setting.settingInstance.choiceSettingValue.value -Catalog $Catalog }) -join "; " } else { $actualValuesRaw }
                 $allMatch = $true
@@ -250,7 +250,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
             $reportLines += "|-------------|---------------------|---------------|"
             foreach ($extra in $extraIds) {
                 $extraMatches = $mergedSettings | Where-Object { $_.Setting.settingInstance.settingDefinitionId -eq $extra }
-                $policyList = ($extraMatches | ForEach-Object { "$($_.PolicyName) ($($_.PolicyId))" }) -join "; "
+                $policyList = ($extraMatches | ForEach-Object { "$($_.PolicyName) " }) -join "; "
                 $actualValuesRaw = ($extraMatches | ForEach-Object { $_.Setting.settingInstance.choiceSettingValue.value }) -join "; "
                 $actualValues = if ($Catalog.Count -gt 0) { ($extraMatches | ForEach-Object { Get-SettingDisplayValue -settingValueId $_.Setting.settingInstance.choiceSettingValue.value -Catalog $Catalog }) -join "; " } else { $actualValuesRaw }
                 $description = if ($Catalog.Count -gt 0) { Get-SettingDescription -settingId $extra -Catalog $Catalog } else { $extra }
