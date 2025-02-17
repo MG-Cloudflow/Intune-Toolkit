@@ -120,6 +120,7 @@
                 <Button x:Name="RenameButton" Content="Edit Name/Description" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="SecurityBaselineAnalysisButton" Content="Compare With Security Baseline" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                 <Button x:Name="BackupButton" Content="Backup Assignments" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>

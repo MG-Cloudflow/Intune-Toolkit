@@ -1,5 +1,15 @@
 # Release Notes
-
+### v2.9.0
+- **New Features**
+  - **Security Baseline Analysis Report**
+    - Added a new feature to merge settings from selected configuration policies and compare them against the Windows 24H2 baseline.
+    - Generates a comprehensive Markdown report that includes:
+      - A summary of total baseline settings, number of settings that match, differ, and are missing.
+      - A detailed "Baseline Settings Comparison" table showing the description, expected values, configured policies, actual values, and comparison results.
+      - An "Extra Settings" table listing settings present in the merged configuration but not defined in the baseline.
+    - Integrated a Save File dialog allowing users to choose where to export the Markdown report.
+    - Implements caching of the settings catalog locally to improve performance on subsequent runs.
+  
 ### v0.2.8.0
 - **New Features**
   - **Device Management Intents**
