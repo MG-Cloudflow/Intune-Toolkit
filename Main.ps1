@@ -134,6 +134,7 @@ function Show-Window {
         $SearchBox = $Window.FindName("SearchBox")
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
+        $SecurityBaselineAnalysisButton = $Window.FindName("SecurityBaselineAnalysisButton")
         $global:CurrentPolicyType = ""
 
         Get-ChildItem -Path ".\Scripts" -Recurse | Unblock-File
@@ -166,6 +167,7 @@ function Show-Window {
         . .\Scripts\MacosScriptsButton.ps1
         . .\Scripts\IntentsButton.ps1 # endpoint security policy aka intents
         . .\Scripts\CheckVersion.ps1 # Check for the latest version of the toolkit
+        . .\Scripts\SecurityBaselineAnalysisButton.ps1
         
 
         Check-LatestVersion -currentVersion $currentVersion

@@ -425,4 +425,9 @@ function Load-PolicyData {
     $RefreshButton.IsEnabled = $true
     $RenameButton.IsEnabled = $true
     $IntentsButton.IsEnabled = $true
+    if ($policyType -eq "configurationPolicies") {
+        $SecurityBaselineAnalysisButton.IsEnabled = $true
+    } else {
+        $SecurityBaselineAnalysisButton.IsEnabled = $false
+    }
 }
