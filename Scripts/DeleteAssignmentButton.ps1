@@ -74,6 +74,7 @@ function Show-DeleteConfirmationDialog {
     })
 
     # Show the dialog and return the result (True if OK was clicked, False otherwise).
+    Set-WindowIcon -Window $Window
     $result = $Window.ShowDialog()
     return $result
 }
