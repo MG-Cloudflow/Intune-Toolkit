@@ -141,7 +141,7 @@ $DeleteAssignmentButton.Add_Click({
                         mobileAppAssignments = $updatedAssignments
                     }
                 }
-                elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts") {
+                elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts" -or $global:CurrentPolicyType -eq "deviceCustomAttributeShellScripts") {
                     $bodyObject = @{
                         deviceManagementScriptAssignments = $updatedAssignments
                     }

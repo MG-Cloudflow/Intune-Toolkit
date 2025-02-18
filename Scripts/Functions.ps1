@@ -184,6 +184,8 @@ function Reload-Grid {
             $platform = "Windows"
         } elseif ($type -eq "deviceShellScripts") {
             $platform = "MacOS"
+        } elseif ($type -eq "deviceCustomAttributeShellScripts") {
+            $platform = "MacOS"
         } elseif ($type -eq "intents") {
             $platform = "Windows"
         } else {
