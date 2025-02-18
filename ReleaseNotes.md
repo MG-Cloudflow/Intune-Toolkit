@@ -1,5 +1,16 @@
 # Release Notes
-### v2.9.0
+### v0.3.0.0
+- **New Features**
+  - **Custom Attributes Management for macOS**
+    - Added support for **bulk assignment** of macOS custom attributes, streamlining device management at scale.
+    - Introduced functionality for **bulk deletion** of macOS custom attributes, improving efficiency in policy cleanup.
+    - **Document Assignments** feature enables comprehensive tracking and reporting of macOS custom attribute configurations.
+    - **Backup and Restore** capabilities now support macOS custom attribute assignments, ensuring quick recovery and replication of configurations.
+- **Bug Fixes & UI Improvements**
+  - Resolved an issue where **disabled buttons** appeared incorrectly enabled in certain UI states.
+  - Adjusted button text in the **Security Baseline Analysis Report** feature to prevent truncation and improve readability.
+
+### v0.2.9.0
 - **New Features**
   - **Security Baseline Analysis Report**
     - Added a new feature to merge settings from selected configuration policies and compare them against the Windows 24H2 baseline.
