@@ -11,7 +11,6 @@ reloading grid data, and loading policy data. Error handling and logging are imp
 Author: Maxime Guillemin | CloudFlow
 Date: 12/02/2025
 
-
 .EXAMPLE
 $groups = Get-AllSecurityGroups
 $filters = Get-AllAssignmentFilters
@@ -20,7 +19,10 @@ Reload-Grid -type "deviceConfigurations"
 Load-PolicyData -policyType "deviceConfigurations" -loadingMessage "Loading..." -loadedMessage "Loaded."
 #>
 
-# Function to get all security groups
+#--------------------------------------------------------------------------------
+# Function: Get-AllSecurityGroups
+# Retrieves all security-enabled groups from Microsoft Graph.
+#--------------------------------------------------------------------------------
 function Get-AllSecurityGroups {
     Write-IntuneToolkitLog "Starting Get-AllSecurityGroups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
     try {
@@ -28,7 +30,6 @@ function Get-AllSecurityGroups {
         Write-IntuneToolkitLog "Fetching all security groups with pagination from $url" -component "Get-AllSecurityGroups" -file "Functions.ps1"
         $allGroups = Get-GraphData -url $url
         Write-IntuneToolkitLog "Successfully fetched all security groups" -component "Get-AllSecurityGroups" -file "Functions.ps1"
-        # Return the full list of groups
         return $allGroups
     } catch {
         $errorMessage = "Failed to get all security groups: $($_.Exception.Message)"
@@ -37,7 +38,53 @@ function Get-AllSecurityGroups {
     }
 }
 
-# Function to get all assignment filters
+#--------------------------------------------------------------------------------
+# Function: Set-WindowIcon
+# The WPF window object whose icon will be set.
+#--------------------------------------------------------------------------------
+function Set-WindowIcon {
+    param (
+        # The WPF window object whose icon will be set.
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Window]$Window,
+
+        # Optional: The icon file name (default is "Intune-toolkit.ico").
+        [Parameter(Mandatory = $false)]
+        [string]$IconFile = "Intune-toolkit.ico"
+    )
+
+    try {
+        # Build the full path to the icon file.
+        $iconPath = ".\$($IconFile)"
+
+        if (Test-Path $iconPath) {
+            # Resolve the full path and convert backslashes to forward slashes.
+            $resolvedIconPath = (Resolve-Path $iconPath).Path
+            $formattedPath = $resolvedIconPath -replace '\\', '/'
+
+            # Build a proper file URI.
+            $uriString = "file:///" + $formattedPath
+            $uri = New-Object System.Uri($uriString)
+
+            # Create a BitmapFrame from the URI and assign it to the window's Icon.
+            $iconBitmap = [System.Windows.Media.Imaging.BitmapFrame]::Create($uri)
+            $Window.Icon = $iconBitmap
+
+            Write-IntuneToolkitLog "Icon set successfully from $iconPath" -component "Set-WindowIcon" -file "Common.ps1"
+        }
+        else {
+            Write-IntuneToolkitLog "Icon file not found at $iconPath" -component "Set-WindowIcon" -file "Common.ps1"
+        }
+    }
+    catch {
+        Write-IntuneToolkitLog "Failed to set icon: $($_.Exception.Message)" -component "Set-WindowIcon" -file "Common.ps1"
+    }
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-AllAssignmentFilters
+# Retrieves all assignment filters from Microsoft Graph and formats them.
+#--------------------------------------------------------------------------------
 function Get-AllAssignmentFilters {
     Write-IntuneToolkitLog "Starting Get-AllAssignmentFilters" -component "Get-AllAssignmentFilters" -file "Functions.ps1"
     try {
@@ -46,7 +93,7 @@ function Get-AllAssignmentFilters {
         $allFilters = Get-GraphData -url $url
         $formattedFilters = $allFilters | ForEach-Object {
             [PSCustomObject]@{
-                Id = $_.id
+                Id          = $_.id
                 DisplayName = $_.displayName
             }
         }
@@ -59,7 +106,10 @@ function Get-AllAssignmentFilters {
     }
 }
 
-# Function to get data from Graph API with pagination
+#--------------------------------------------------------------------------------
+# Function: Get-GraphData
+# Retrieves data from Microsoft Graph API with support for pagination.
+#--------------------------------------------------------------------------------
 function Get-GraphData {
     param (
         [Parameter(Mandatory=$true)]
@@ -88,6 +138,10 @@ function Get-GraphData {
     }
 }
 
+#--------------------------------------------------------------------------------
+# Function: Get-PlatformApps
+# Determines the platform (Android, iOS, Windows, macOS, Web) for an app based on its OData type.
+#--------------------------------------------------------------------------------
 function Get-PlatformApps {
     param (
         [Parameter(Mandatory = $false)]
@@ -124,6 +178,10 @@ function Get-PlatformApps {
     return $platform
 }
 
+#--------------------------------------------------------------------------------
+# Function: Get-DevicePlatform
+# Determines the device platform based on a partial match in the OData type.
+#--------------------------------------------------------------------------------
 function Get-DevicePlatform {
     param (
         [string]$OdataType
@@ -142,13 +200,86 @@ function Get-DevicePlatform {
     }
 }
 
-# Function to reload the grid data
+#--------------------------------------------------------------------------------
+# Helper Function: Process-Assignment
+# Consolidates the common logic for processing a single assignment.
+# Parameters:
+#   - policy: The policy object containing assignment details.
+#   - assignment: The specific assignment to process.
+#   - platform: The determined platform for the policy.
+#   - groupLookup: A hashtable mapping group IDs to display names.
+#   - filterLookup: A hashtable mapping filter IDs to display names.
+#   - isMobileApp: (Optional) Flag to indicate mobileApps-specific behavior.
+#--------------------------------------------------------------------------------
+function Process-Assignment {
+    param (
+        [Parameter(Mandatory=$true)]
+        $policy,
+        [Parameter(Mandatory=$true)]
+        $assignment,
+        [Parameter(Mandatory=$true)]
+        $platform,
+        [Parameter(Mandatory=$true)]
+        $groupLookup,
+        [Parameter(Mandatory=$true)]
+        $filterLookup,
+        [Parameter(Mandatory=$false)]
+        [bool]$isMobileApp = $false
+    )
+
+    # Determine the group display name based on the assignment's target type.
+    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
+        $groupDisplayName = "All Devices"
+    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or 
+              $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
+        $groupDisplayName = "All Users"
+    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
+        $groupDisplayName = $groupLookup[$assignment.target.groupId]
+    } else {
+        $groupDisplayName = ""
+    }
+
+    # Determine the filter display name if available.
+    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
+        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
+    } else { 
+        "" 
+    }
+
+    # Determine the assignment type: "Exclude" if the target is an exclusion; otherwise, "Include".
+    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
+        "Exclude" 
+    } else { 
+        "Include" 
+    }
+
+    # Build and return the processed assignment object.
+    return [PSCustomObject]@{
+        PolicyId          = $policy.id
+        PolicyName        = if ($isMobileApp) { $policy.displayName } else { if ($policy.displayName) { $policy.displayName } else { $policy.name } }
+        PolicyDescription = $policy.description
+        AssignmentType    = $assignmentType
+        GroupDisplayname  = $groupDisplayName
+        GroupId           = $assignment.target.groupId
+        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
+        FilterDisplayname = $filterDisplayName
+        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
+        InstallIntent     = if ($isMobileApp) { if ($assignment.intent) { $assignment.intent } else { "" } } else { "" }
+        Platform          = $platform
+    }
+}
+
+#--------------------------------------------------------------------------------
+# Function: Reload-Grid
+# Retrieves policy data from Microsoft Graph and prepares it for display.
+#--------------------------------------------------------------------------------
 function Reload-Grid {
     param (
         [Parameter(Mandatory=$true)]
         [string] $type
     )
 
+    # Determine the correct URL based on the policy type.
     if ($type -eq "mobileApps") {
         $url = "https://graph.microsoft.com/beta/deviceAppManagement/$($type)?`$filter=(microsoft.graph.managedApp/appAvailability%20eq%20null%20or%20microsoft.graph.managedApp/appAvailability%20eq%20%27lineOfBusiness%27%20or%20isAssigned%20eq%20true)&`$orderby=displayName&`$expand=assignments"
     } elseif ($type -eq "mobileAppConfigurations") {
@@ -159,21 +290,32 @@ function Reload-Grid {
         $url = "https://graph.microsoft.com/beta/deviceManagement/$($type)?`$expand=assignments"
     }
 
+    # Retrieve the policy data from Graph (supports pagination).
     $result = Get-GraphData -url $url
 
-    # Fetch all security groups and filters
+    #--------------------------------------------------------------------------------
+    # Build lookup tables for security groups and assignment filters.
+    #--------------------------------------------------------------------------------
     $allFilters = Get-AllAssignmentFilters
+
     $groupLookup = @{}
     foreach ($group in $global:AllSecurityGroups) { 
         $groupLookup[$group.Id] = $group.DisplayName 
     }
+
     $filterLookup = @{}
     foreach ($filter in $allFilters) { 
         $filterLookup[$filter.Id] = $filter.DisplayName 
     }
 
+    # Clear the global policy data container.
     $global:AllPolicyData = @()
+
+    #--------------------------------------------------------------------------------
+    # Process each policy retrieved from Graph.
+    #--------------------------------------------------------------------------------
     foreach ($policy in $result) {
+        # Determine the platform for the policy based on its type and OData type.
         if ($type -eq "configurationPolicies") {
             $platform = Get-DevicePlatform -OdataType $policy.platforms
         } elseif ($type -eq "mobileApps") {
@@ -192,41 +334,26 @@ function Reload-Grid {
             $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
         }
 
-        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts"-or $type -eq "deviceCustomAttributeShellScripts") {
+        # Process policies based on their type.
+        if ($type -eq "deviceConfigurations" -or 
+            $type -eq "configurationPolicies" -or 
+            $type -eq "deviceCompliancePolicies" -or 
+            $type -eq "groupPolicyConfigurations" -or 
+            $type -eq "deviceHealthScripts" -or 
+            $type -eq "deviceManagementScripts" -or 
+            $type -eq "managedAppPolicies" -or 
+            $type -eq "mobileAppConfigurations" -or 
+            $type -eq "deviceShellScripts" -or 
+            $type -eq "deviceCustomAttributeShellScripts") {
+
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
-                    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
-                        $groupDisplayName = "All Devices"
-                    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
-                        $groupDisplayName = "All Users"
-                    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
-                        $groupDisplayName = $groupLookup[$assignment.target.groupId]
-                    } else {
-                        $groupDisplayName = ""
-                    }
-                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
-                        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
-                    } else { 
-                        "" 
-                    }
-                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
-                        "Exclude" 
-                    } else { 
-                        "Include" 
-                    }
-                    $global:AllPolicyData += [PSCustomObject]@{
-                        PolicyId          = $policy.id
-                        PolicyName        = if ($policy.displayName) { $policy.displayName } else { $policy.name }
-                        PolicyDescription = $policy.description
-                        AssignmentType    = $assignmentType
-                        GroupDisplayname  = $groupDisplayName
-                        GroupId           = $assignment.target.groupId
-                        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
-                        FilterDisplayname = $filterDisplayName
-                        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
-                        InstallIntent     = ""
-                        Platform          = $platform
-                    }
+                    $global:AllPolicyData += Process-Assignment -policy $policy `
+                                                                   -assignment $assignment `
+                                                                   -platform $platform `
+                                                                   -groupLookup $groupLookup `
+                                                                   -filterLookup $filterLookup `
+                                                                   -isMobileApp:$false
                 }
             } else {
                 $global:AllPolicyData += [PSCustomObject]@{
@@ -246,38 +373,12 @@ function Reload-Grid {
         } elseif ($type -eq "mobileApps") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
-                    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
-                        $groupDisplayName = "All Devices"
-                    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
-                        $groupDisplayName = "All Users"
-                    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
-                        $groupDisplayName = $groupLookup[$assignment.target.groupId]
-                    } else {
-                        $groupDisplayName = ""
-                    }
-                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
-                        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
-                    } else { 
-                        "" 
-                    }
-                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
-                        "Exclude" 
-                    } else { 
-                        "Include" 
-                    }
-                    $global:AllPolicyData += [PSCustomObject]@{
-                        PolicyId          = $policy.id
-                        PolicyName        = $policy.displayName
-                        PolicyDescription = $policy.description
-                        AssignmentType    = $assignmentType
-                        GroupDisplayname  = $groupDisplayName
-                        GroupId           = $assignment.target.groupId
-                        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
-                        FilterDisplayname = $filterDisplayName
-                        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
-                        InstallIntent     = if ($assignment.intent) { $assignment.intent } else { "" }
-                        Platform          = $platform
-                    }
+                    $global:AllPolicyData += Process-Assignment -policy $policy `
+                                                                   -assignment $assignment `
+                                                                   -platform $platform `
+                                                                   -groupLookup $groupLookup `
+                                                                   -filterLookup $filterLookup `
+                                                                   -isMobileApp:$true
                 }
             } else {
                 $global:AllPolicyData += [PSCustomObject]@{
@@ -298,38 +399,12 @@ function Reload-Grid {
             $assignments = Get-GraphData -url "https://graph.microsoft.com/beta/deviceManagement/intents('$($policy.id)')/assignments"
             if ($assignments -and $assignments.Count -gt 0) {
                 foreach ($assignment in $assignments) {
-                    if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
-                        $groupDisplayName = "All Devices"
-                    } elseif ($assignment.target.'@odata.type' -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or $assignment.target.'@odata.type' -eq "#microsoft.graph.allUsersAssignmentTarget") {
-                        $groupDisplayName = "All Users"
-                    } elseif ($assignment.target.groupId -and $groupLookup.ContainsKey($assignment.target.groupId)) {
-                        $groupDisplayName = $groupLookup[$assignment.target.groupId]
-                    } else {
-                        $groupDisplayName = ""
-                    }
-                    $filterDisplayName = if ($assignment.target.deviceAndAppManagementAssignmentFilterId -and $filterLookup.ContainsKey($assignment.target.deviceAndAppManagementAssignmentFilterId)) { 
-                        $filterLookup[$assignment.target.deviceAndAppManagementAssignmentFilterId] 
-                    } else { 
-                        "" 
-                    }
-                    $assignmentType = if ($assignment.target.'@odata.type' -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { 
-                        "Exclude" 
-                    } else { 
-                        "Include" 
-                    }
-                    $global:AllPolicyData += [PSCustomObject]@{
-                        PolicyId          = $policy.id
-                        PolicyName        = $policy.displayName
-                        PolicyDescription = $policy.description
-                        AssignmentType    = $assignmentType
-                        GroupDisplayname  = $groupDisplayName
-                        GroupId           = $assignment.target.groupId
-                        FilterId          = $assignment.target.deviceAndAppManagementAssignmentFilterId
-                        FilterDisplayname = $filterDisplayName
-                        FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
-                        InstallIntent     = ""
-                        Platform          = $platform
-                    }
+                    $global:AllPolicyData += Process-Assignment -policy $policy `
+                                                                   -assignment $assignment `
+                                                                   -platform $platform `
+                                                                   -groupLookup $groupLookup `
+                                                                   -filterLookup $filterLookup `
+                                                                   -isMobileApp:$false
                 }
             } else {
                 $assignmentStatus = if ($policy.isAssigned) { "Assigned" } else { "Not Assigned" }
@@ -352,7 +427,10 @@ function Reload-Grid {
     return $global:AllPolicyData
 }
 
-# Function to load policy data and update the UI
+#--------------------------------------------------------------------------------
+# Function: Load-PolicyData
+# Loads policy data, updates the DataGrid UI, and manages UI element states.
+#--------------------------------------------------------------------------------
 function Load-PolicyData {
     param (
         [Parameter(Mandatory = $true)]
@@ -365,7 +443,7 @@ function Load-PolicyData {
         [string] $loadedMessage
     )
 
-    # Update the UI to indicate loading status
+    # Update the UI to indicate loading status.
     $StatusText.Text = $loadingMessage
     $ConfigurationPoliciesButton.IsEnabled = $false
     $DeviceConfigurationButton.IsEnabled = $false
@@ -390,22 +468,31 @@ function Load-PolicyData {
     $IntentsButton.IsEnabled = $false
     $DeviceCustomAttributeShellScriptsButton.IsEnabled = $false
 
-    # Load data synchronously
+    # Load data synchronously.
     $result = Reload-Grid -type $policyType
-    # Update the DataGrid with the loaded data
+    # Update the DataGrid with the loaded data.
     $PolicyDataGrid.ItemsSource = @($result)
     $PolicyDataGrid.Items.Refresh()
 
+    # Determine which columns should be visible based on the policy type.
     $InstallIntentColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Install Intent" }
-    #$PlatformCollum = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Platform" }
-    #$PlatformCollum.Visibility = [System.Windows.Visibility]::Visible
+    $FilterDisplayNameColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Filter Display Name" }
+    $FilterTypeColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Filter Type" }
+
     if ($policyType -eq "mobileApps") {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Visible
-        #$PlatformCollum.Visibility = [System.Windows.Visibility]::Visible
     } else {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Collapsed
-        #$PlatformCollum.Visibility = [System.Windows.Visibility]::Collapsed
     }
+    if ($policyType -eq "deviceShellScripts" -or $policyType -eq "intents" -or $policyType -eq "deviceManagementScripts" -or $policyType -eq "deviceCustomAttributeShellScripts") {
+        $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Collapsed
+        $FilterTypeColumn.Visibility = [System.Windows.Visibility]::Collapsed
+    } else {
+        $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Visible
+        $FilterTypeColumn.Visibility = [System.Windows.Visibility]::Visible
+    }
+    
+    # Re-enable UI elements and update status to indicate data has been loaded.
     $StatusText.Text = $loadedMessage
     $ConfigurationPoliciesButton.IsEnabled = $true
     $DeviceConfigurationButton.IsEnabled = $true
@@ -413,7 +500,6 @@ function Load-PolicyData {
     $AdminTemplatesButton.IsEnabled = $true
     $ApplicationsButton.IsEnabled = $true
     $AppConfigButton.IsEnabled = $true
-    #$RemediationScriptsButton.IsEnabled = $true
     $PlatformScriptsButton.IsEnabled = $true
     $MacosScriptsButton.IsEnabled = $true
     $DeleteAssignmentButton.IsEnabled = $true

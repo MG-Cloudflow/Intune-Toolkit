@@ -1,16 +1,15 @@
 <#
 .SYNOPSIS
-Main script to load and display the Intune Toolkit window.
+Main script to load and display the Intune Toolkit window with a custom icon.
 
 .DESCRIPTION
-This script loads a XAML file to define the UI, locates UI elements,
-imports required external scripts, and displays the window. Error handling
-and logging are implemented to catch and log errors during these processes.
+This script loads a XAML file to define the UI, locates UI elements, imports required external scripts, 
+sets the window's icon programmatically using a custom ICO file located in the script's root folder, 
+and displays the window. Error handling and logging are implemented to catch and log errors during these processes.
 
 .NOTES
 Author: Maxime Guillemin | CloudFlow
 Date: 09/07/2024
-
 
 .EXAMPLE
 Show-Window
@@ -28,15 +27,15 @@ if (Test-Path -Path $global:logFile -ErrorAction SilentlyContinue) {
     $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
     $backupFilePath = Join-Path -Path $env:TEMP -ChildPath "IntuneToolkit-$timestamp.log"
     Copy-Item -Path $global:logFile -Destination $backupFilePath -ErrorAction SilentlyContinue
-	#Clear Existing $global:logFile content
-	Clear-Content -Path $global:logFile -ErrorAction SilentlyContinue
-	$logEntry = "Log entry created at $($timestamp)"
-	Add-Content -Path $global:logFile -Value $logEntry
+    # Clear Existing $global:logFile content
+    Clear-Content -Path $global:logFile -ErrorAction SilentlyContinue
+    $logEntry = "Log entry created at $($timestamp)"
+    Add-Content -Path $global:logFile -Value $logEntry
 } else {
-# Create new log file if doesn't exist of after it was backed up
-New-Item -Path $global:logFile -ItemType File -Force -ErrorAction SilentlyContinue
-$logEntry = "Log entry created at $($timestamp)"
-Add-Content -Path $global:logFile -Value $logEntry
+    # Create new log file if it doesn't exist or after it was backed up
+    New-Item -Path $global:logFile -ItemType File -Force -ErrorAction SilentlyContinue
+    $logEntry = "Log entry created at $($timestamp)"
+    Add-Content -Path $global:logFile -Value $logEntry
 }
 #endregion
 
@@ -75,19 +74,18 @@ try {
     exit 1
 }
 
-# Check if PowerShell versoin is 7.0.0 based on requirements from https://github.com/MG-Cloudflow/Intune-Toolkit by Thiago Beier https://x.com/thiagobeier https://github.com/thiagogbeier
+# Check if PowerShell version is 7.0.0 based on requirements from https://github.com/MG-Cloudflow/Intune-Toolkit
 $PScurrentVersion = $PSVersionTable.PSVersion
 $PSrequiredVersion = [Version]"7.0.0"
 
 # Check if the current version is less than the required version
 if ($PScurrentVersion -lt $PSrequiredVersion) {
     $errorMessage = "You are running PowerShell version $PScurrentVersion. Please upgrade to PowerShell 7 or higher."
-	[System.Windows.Forms.MessageBox]::Show($errorMessage, "PowerShell Version outdated", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-	Write-IntuneToolkitLog $errorMessage
-	exit 1
+    [System.Windows.Forms.MessageBox]::Show($errorMessage, "PowerShell Version outdated", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    Write-IntuneToolkitLog $errorMessage
+    exit 1
 } else {
-	#$errorMessage = "You are running PowerShell version $currentVersion. All good!"
-	Write-IntuneToolkitLog $errorMessage
+    Write-IntuneToolkitLog "PowerShell version check passed: $PScurrentVersion"
 }
 
 # Function to display the main window
@@ -170,14 +168,18 @@ function Show-Window {
         . .\Scripts\CheckVersion.ps1 # Check for the latest version of the toolkit
         . .\Scripts\SecurityBaselineAnalysisButton.ps1
         . .\Scripts\DeviceCustomAttributeShellScriptsButton.ps1
-        
 
         Check-LatestVersion -currentVersion $currentVersion
 
         Write-IntuneToolkitLog "Successfully imported external scripts"
 
-        $Window.ShowDialog() | Out-Null
+        # -----------------------------------------------------------
+        # Set the custom icon programmatically.
+        # -----------------------------------------------------------
+        Set-WindowIcon -Window $Window
 
+        # Show the window
+        $Window.ShowDialog() | Out-Null
         Write-IntuneToolkitLog "Displayed the window successfully"
     } catch {
         $errorMessage = "Failed to load and display the window: $($_.Exception.Message)"

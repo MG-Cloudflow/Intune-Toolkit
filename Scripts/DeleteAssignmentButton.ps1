@@ -17,20 +17,24 @@ $DeleteAssignmentButton.Add_Click({
 })
 #>
 
-# Helper function: Show-DeleteConfirmationDialog
+#--------------------------------------------------------------------------------
+# Helper Function: Show-DeleteConfirmationDialog
+#--------------------------------------------------------------------------------
+# Displays a confirmation dialog using a XAML-based UI and returns the user's choice.
 function Show-DeleteConfirmationDialog {
     param (
         [Parameter(Mandatory = $true)]
         [string]$SummaryText
     )
 
-    # Path to the XAML file for the confirmation dialog
+    # Define the path to the XAML file that contains the dialog layout.
     $xamlPath = ".\XML\DeleteConfirmationDialog.xaml"
     if (-not (Test-Path $xamlPath)) {
         Write-IntuneToolkitLog "DeleteConfirmationDialog XAML file not found at $xamlPath" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
         return $false
     }
 
+    # Load the XAML content and create a Window object.
     [xml]$xaml = Get-Content $xamlPath
     $reader = New-Object System.Xml.XmlNodeReader $xaml
     $Window = [Windows.Markup.XamlReader]::Load($reader)
@@ -40,69 +44,85 @@ function Show-DeleteConfirmationDialog {
         return $false
     }
 
-    # Find UI elements in the dialog
+    # Retrieve key UI elements from the loaded XAML.
     $TitleTextBlock = $Window.FindName("ModuleInstallMessage")
     $DetailsTextBlock = $Window.FindName("DeleteDetailsTextBlock")
     $OkButton = $Window.FindName("OKButton")
     $CancelButton = $Window.FindName("CancelButton")
 
+    # Ensure all required UI elements are present.
     if (-not $TitleTextBlock -or -not $DetailsTextBlock -or -not $OkButton -or -not $CancelButton) {
         Write-IntuneToolkitLog "One or more required UI elements not found in DeleteConfirmationDialog" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
         return $false
     }
 
-    # Set the details text to the summary provided
+    # Set the details text with the summary provided by the caller.
     $DetailsTextBlock.Text = $SummaryText
 
-    # Use the DialogResult property to capture user action
+    # Register click event for the OK button.
     $OkButton.Add_Click({
         Write-IntuneToolkitLog "OK button clicked in DeleteConfirmationDialog" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
         $Window.DialogResult = $true
         $Window.Close()
     })
 
+    # Register click event for the Cancel button.
     $CancelButton.Add_Click({
         Write-IntuneToolkitLog "Cancel button clicked in DeleteConfirmationDialog" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
         $Window.DialogResult = $false
         $Window.Close()
     })
 
+    # Show the dialog and return the result (True if OK was clicked, False otherwise).
     $result = $Window.ShowDialog()
     return $result
 }
 
-# Main DeleteAssignmentButton click event
+#--------------------------------------------------------------------------------
+# Main DeleteAssignmentButton Click Event
+#--------------------------------------------------------------------------------
 $DeleteAssignmentButton.Add_Click({
-    # (Optional) Debug MessageBox to verify event fires
-    #[System.Windows.MessageBox]::Show("DeleteAssignmentButton clicked!")
+    # Log that the deletion process has been initiated.
     Write-IntuneToolkitLog "DeleteAssignmentButton clicked" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
     try {
+        # Retrieve selected policies from the DataGrid.
         $selectedPolicies = $PolicyDataGrid.SelectedItems
+
+        # Proceed only if there is at least one selected policy.
         if ($selectedPolicies -and $selectedPolicies.Count -gt 0) {
             Write-IntuneToolkitLog "Selected policies count: $($selectedPolicies.Count)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
-            # Build a summary string for confirmation
+            #--------------------------------------------------------------------------------
+            # Build a summary string listing all assignments that will be deleted.
+            #--------------------------------------------------------------------------------
             $summaryLines = @()
             foreach ($selectedPolicy in $selectedPolicies) {
-                # Assuming $selectedPolicy has properties PolicyId and GroupDisplayname
-                $line = "Policy: $($selectedPolicy.PolicyName) - Delete assignment : $($selectedPolicy.GroupDisplayname)"
+                # Build a summary line for each policy (assuming PolicyName and GroupDisplayname properties exist).
+                $line = "Policy: $($selectedPolicy.PolicyName) - Delete assignment: $($selectedPolicy.GroupDisplayname)"
                 $summaryLines += $line
             }
             $summaryText = "The following assignments will be deleted:`n`n" + ($summaryLines -join "`n")
             $summaryText += "`n`nAre you sure you want to proceed?"
 
-            # Show the confirmation dialog and capture the result
+            #--------------------------------------------------------------------------------
+            # Display the confirmation dialog and capture the user's response.
+            #--------------------------------------------------------------------------------
             $confirm = Show-DeleteConfirmationDialog -SummaryText $summaryText
             if (-not $confirm) {
                 Write-IntuneToolkitLog "User canceled deletion" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
                 return
             }
 
+            #--------------------------------------------------------------------------------
+            # Process each selected policy for assignment deletion.
+            #--------------------------------------------------------------------------------
             foreach ($selectedPolicy in $selectedPolicies) {
                 Write-IntuneToolkitLog "Processing selected policy: $($selectedPolicy.PolicyId)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
-                # Get current assignments
+                #--------------------------------------------------------------------------------
+                # Retrieve the current assignments for the policy using Microsoft Graph.
+                #--------------------------------------------------------------------------------
                 if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
@@ -113,10 +133,14 @@ $DeleteAssignmentButton.Add_Click({
                 Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
                 Write-IntuneToolkitLog "Fetched assignments: $($assignments.Count)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
-                # Filter out the assignment matching the selected policy's GroupId
+                #--------------------------------------------------------------------------------
+                # Filter out the assignment that matches the selected policy's GroupId.
+                # Only assignments that do not match are retained.
+                #--------------------------------------------------------------------------------
                 $updatedAssignments = @()
                 foreach ($assignment in $assignments) {
                     if ($assignment.target.groupId -ne $selectedPolicy.GroupId) {
+                        # Build an assignment object with the necessary properties.
                         $assignmentObject = @{
                             target = @{
                                 '@odata.type' = "#microsoft.graph.groupAssignmentTarget"
@@ -125,23 +149,26 @@ $DeleteAssignmentButton.Add_Click({
                                 deviceAndAppManagementAssignmentFilterType = $assignment.target.deviceAndAppManagementAssignmentFilterType
                             }
                         }
-                        # Retain original intent if it's a mobile app
+                        # For mobile apps, retain the original intent.
                         if ($global:CurrentPolicyType -eq "mobileApps") {
                             $assignmentObject.intent = $assignment.intent
                         }
                         $updatedAssignments += $assignmentObject
                     }
                 }
-
                 Write-IntuneToolkitLog "Updated assignments count: $($updatedAssignments.Count)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
-                # Create the body object for the update
+                #--------------------------------------------------------------------------------
+                # Create the body object for the update request based on policy type.
+                #--------------------------------------------------------------------------------
                 if ($global:CurrentPolicyType -eq "mobileApps") {
                     $bodyObject = @{
                         mobileAppAssignments = $updatedAssignments
                     }
                 }
-                elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts" -or $global:CurrentPolicyType -eq "deviceCustomAttributeShellScripts") {
+                elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or 
+                        $global:CurrentPolicyType -eq "deviceShellScripts" -or 
+                        $global:CurrentPolicyType -eq "deviceCustomAttributeShellScripts") {
                     $bodyObject = @{
                         deviceManagementScriptAssignments = $updatedAssignments
                     }
@@ -152,11 +179,15 @@ $DeleteAssignmentButton.Add_Click({
                     }
                 }
 
-                # Convert the body object to JSON
+                #--------------------------------------------------------------------------------
+                # Convert the body object to JSON for the API request.
+                #--------------------------------------------------------------------------------
                 $body = $bodyObject | ConvertTo-Json -Depth 10
                 Write-IntuneToolkitLog "Body for update: $body" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
-                # Update the assignments via Microsoft Graph
+                #--------------------------------------------------------------------------------
+                # Determine the update URL based on the current policy type.
+                #--------------------------------------------------------------------------------
                 if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
                     $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
                 }
@@ -164,22 +195,30 @@ $DeleteAssignmentButton.Add_Click({
                     $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
                 }
                 Write-IntuneToolkitLog "Updating assignments at: $urlUpdateAssignments" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
+
+                #--------------------------------------------------------------------------------
+                # Send the update request to Microsoft Graph to remove the selected assignment.
+                #--------------------------------------------------------------------------------
                 Invoke-MgGraphRequest -Uri $urlUpdateAssignments -Method POST -Body $body -ContentType "application/json"
                 Write-IntuneToolkitLog "Assignments updated for policy: $($selectedPolicy.PolicyId)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
             }
 
-            # Refresh the DataGrid after deletion
+            #--------------------------------------------------------------------------------
+            # Refresh the DataGrid to reflect the deletion.
+            #--------------------------------------------------------------------------------
             Write-IntuneToolkitLog "Refreshing DataGrid" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
             Load-PolicyData -policyType $global:CurrentPolicyType -loadingMessage "Loading $($global:CurrentPolicyType)..." -loadedMessage "$($global:CurrentPolicyType) loaded."
             Write-IntuneToolkitLog "DataGrid refreshed" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
         }
         else {
+            # If no policies were selected, notify the user.
             $message = "Please select one or more policies."
             [System.Windows.MessageBox]::Show($message)
             Write-IntuneToolkitLog $message -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
         }
     }
     catch {
+        # Global error handling: log and display an error message if something goes wrong.
         $errorMessage = "Failed to delete assignments. Error: $($_.Exception.Message)"
         [System.Windows.MessageBox]::Show($errorMessage, "Error")
         Write-IntuneToolkitLog $errorMessage -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
