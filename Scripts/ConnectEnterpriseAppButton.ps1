@@ -69,6 +69,7 @@ $ConnectEnterpriseAppButton.Add_Click({
             # Update UI elements after successful connection
             Write-IntuneToolkitLog "Updating UI elements after successful connection" -component "ConnectEnterpriseAppButton" -file "ConnectEnterpriseAppButton.ps1"
 
+            # Update UI elements
             $StatusText.Text = "Please select a policy type."
             $PolicyDataGrid.Visibility = "Visible"
             $RenameButton.IsEnabled = $true
@@ -83,6 +84,7 @@ $ConnectEnterpriseAppButton.Add_Click({
             $ApplicationsButton.IsEnabled = $true
             $AppConfigButton.IsEnabled = $true
             $MacosScriptsButton.IsEnabled = $true
+            $IntentsButton.IsEnabled = $true
             #$RemediationScriptsButton.IsEnabled = $true
             $PlatformScriptsButton.IsEnabled = $true
             $ConnectButton.IsEnabled = $false
@@ -94,6 +96,7 @@ $ConnectEnterpriseAppButton.Add_Click({
             $SearchButton.IsEnabled = $true
             $ExportToCSVButton.IsEnabled = $true
             $ExportToMDButton.IsEnabled = $true
+            $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
 
             Write-IntuneToolkitLog "UI elements updated successfully" -component "ConnectEnterpriseAppButton" -file "ConnectEnterpriseAppButton.ps1"
 

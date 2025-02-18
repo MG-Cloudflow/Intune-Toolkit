@@ -74,6 +74,7 @@
             <Button x:Name="PlatformScriptsButton" Content="Platform Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="RemediationScriptsButton" Content="Remediation Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="MacosScriptsButton" Content="Mac OS Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="DeviceCustomAttributeShellScriptsButton" Content="Custome Attributes" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
         </StackPanel>
         <StackPanel Orientation="Vertical" Grid.Column="0" Grid.Row="0" Margin="10">
             <Button x:Name="ConnectButton" Content="Connect to Graph" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>

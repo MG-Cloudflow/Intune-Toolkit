@@ -152,7 +152,7 @@ $AddAssignmentButton.Add_Click({
                         mobileAppAssignments = $assignments
                     }
                 }
-                elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts") {
+                elseif ($global:CurrentPolicyType -eq "deviceManagementScripts" -or $global:CurrentPolicyType -eq "deviceShellScripts" -or $global:CurrentPolicyType -eq "deviceCustomAttributeShellScripts") {
                     $newAssignment = @{
                         target = $target
                     }

@@ -17,7 +17,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.2.9.0"
+$currentVersion = "v0.3.0.0"
 
 #region log file
 # Define the log file path
@@ -135,6 +135,7 @@ function Show-Window {
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
         $SecurityBaselineAnalysisButton = $Window.FindName("SecurityBaselineAnalysisButton")
+        $DeviceCustomAttributeShellScriptsButton = $Window.FindName("DeviceCustomAttributeShellScriptsButton")
         $global:CurrentPolicyType = ""
 
         Get-ChildItem -Path ".\Scripts" -Recurse | Unblock-File
@@ -168,6 +169,7 @@ function Show-Window {
         . .\Scripts\IntentsButton.ps1 # endpoint security policy aka intents
         . .\Scripts\CheckVersion.ps1 # Check for the latest version of the toolkit
         . .\Scripts\SecurityBaselineAnalysisButton.ps1
+        . .\Scripts\DeviceCustomAttributeShellScriptsButton.ps1
         
 
         Check-LatestVersion -currentVersion $currentVersion

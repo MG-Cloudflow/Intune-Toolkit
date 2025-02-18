@@ -190,7 +190,7 @@ function Reload-Grid {
             $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
         }
 
-        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts") {
+        if ($type -eq "deviceConfigurations" -or $type -eq "configurationPolicies" -or $type -eq "deviceCompliancePolicies" -or $type -eq "groupPolicyConfigurations" -or $type -eq "deviceHealthScripts" -or $type -eq "deviceManagementScripts" -or $type -eq "managedAppPolicies" -or $type -eq "mobileAppConfigurations" -or $type -eq "deviceShellScripts"-or $type -eq "deviceCustomAttributeShellScripts") {
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
                     if ($assignment.target.'@odata.type' -eq "#microsoft.graph.allDevicesAssignmentTarget") {
@@ -386,6 +386,7 @@ function Load-PolicyData {
     $RefreshButton.IsEnabled = $false
     $RenameButton.IsEnabled = $false
     $IntentsButton.IsEnabled = $false
+    $DeviceCustomAttributeShellScriptsButton.IsEnabled = $false
 
     # Load data synchronously
     $result = Reload-Grid -type $policyType
@@ -425,6 +426,7 @@ function Load-PolicyData {
     $RefreshButton.IsEnabled = $true
     $RenameButton.IsEnabled = $true
     $IntentsButton.IsEnabled = $true
+    $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
     if ($policyType -eq "configurationPolicies") {
         $SecurityBaselineAnalysisButton.IsEnabled = $true
     } else {

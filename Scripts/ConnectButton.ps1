@@ -68,6 +68,7 @@ $ConnectButton.Add_Click({
         $SearchButton.IsEnabled = $true
         $ExportToCSVButton.IsEnabled = $true
         $ExportToMDButton.IsEnabled = $true
+        $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
 
         Write-IntuneToolkitLog "UI elements updated successfully" -component "Connect-Button" -file "ConnectButton.ps1"
 
