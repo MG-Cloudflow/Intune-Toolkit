@@ -13,6 +13,7 @@
   - Removed Filter Collums from UI where Filters Cannot be Assigned to
   - Disabled Filter Fields when assigning to Polcies that dont support filters
   - Build In safty to check if both filter fields are filled in before you can assign the policy if one of them is assinged
+  - Fixed issue #36
   - Add Intune-Toolki Icon
   - Cleanup Code & Added extra Comments in the Code to make it more readable
   - Correct naming of macOS Platform ;-)
