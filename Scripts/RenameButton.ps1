@@ -102,7 +102,7 @@ function Show-RenamePopup {
             [System.Windows.MessageBox]::Show("Please enter both a valid name and description.", "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
         }
     })
-
+    Set-WindowIcon -Window $Window
     # Display the Rename Popup window
     $Window.ShowDialog() | Out-Null
     return @{Name=$script:newPolicyName; Description=$script:newPolicyDescription}

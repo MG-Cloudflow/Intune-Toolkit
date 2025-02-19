@@ -1,5 +1,25 @@
 # Release Notes
-### v2.9.0
+### v0.3.0.0
+- **New Features**
+  - **Custom Attributes Management for macOS**
+    - Added support for **bulk assignment** of macOS custom attributes, streamlining device management at scale.
+    - Introduced functionality for **bulk deletion** of macOS custom attributes, improving efficiency in policy cleanup.
+    - **Document Assignments** feature enables comprehensive tracking and reporting of macOS custom attribute configurations.
+      - added extra platfrom information to markdown file
+    - **Backup and Restore** capabilities now support macOS custom attribute assignments, ensuring quick recovery and replication of configurations.
+- **Bug Fixes & UI Improvements**
+  - Resolved an issue where **disabled buttons** appeared incorrectly enabled in certain UI states.
+  - Adjusted button text in the **Security Baseline Analysis Report** feature to prevent truncation and improve readability.
+  - Removed Filter Collums from UI where Filters Cannot be Assigned to
+  - Disabled Filter Fields when assigning to Polcies that dont support filters
+  - Build In safty to check if both filter fields are filled in before you can assign the policy if one of them is assinged
+  - Fixed issue #36
+  - Add Intune-Toolki Icon
+  - Cleanup Code & Added extra Comments in the Code to make it more readable
+  - Correct naming of macOS Platform ;-)
+
+
+### v0.2.9.0
 - **New Features**
   - **Security Baseline Analysis Report**
     - Added a new feature to merge settings from selected configuration policies and compare them against the Windows 24H2 baseline.

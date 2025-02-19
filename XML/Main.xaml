@@ -73,7 +73,8 @@
             <Button x:Name="AppConfigButton" Content="App configuration policies" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="PlatformScriptsButton" Content="Platform Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
             <Button x:Name="RemediationScriptsButton" Content="Remediation Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="MacosScriptsButton" Content="Mac OS Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="MacosScriptsButton" Content="macOS Scripts" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="DeviceCustomAttributeShellScriptsButton" Content="macOS Custom Attributes" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
         </StackPanel>
         <StackPanel Orientation="Vertical" Grid.Column="0" Grid.Row="0" Margin="10">
             <Button x:Name="ConnectButton" Content="Connect to Graph" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>
@@ -117,16 +118,16 @@
         </DataGrid>
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Grid.Row="3" Grid.Column="1" Margin="10">
             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                <Button x:Name="RenameButton" Content="Edit Name/Description" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="SecurityBaselineAnalysisButton" Content="Compare With Security Baseline" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="RenameButton" Content="Edit Name/Description" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="SecurityBaselineAnalysisButton" Content="Compare With Security Baseline" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                <Button x:Name="BackupButton" Content="Backup Assignments" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="RestoreButton" Content="Restore Assignments" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="ExportToMDButton" Content="Export to MD" Width="160" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="BackupButton" Content="Backup Assignments" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="RestoreButton" Content="Restore Assignments" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="ExportToMDButton" Content="Export to MD" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             </StackPanel>
         </StackPanel>
     </Grid>
