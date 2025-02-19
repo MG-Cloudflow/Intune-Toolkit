@@ -16,16 +16,17 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Configuration Policies
   - Device Configuration Policies
   - Device Compliance Policies
-  - Mobile Applications  
-    - Windows Applications  
-    - MacOS Applications  
+  - Mobile Applications
+    - Windows Applications
+    - MacOS Applications
     - Android Managed Google Playstore Applications  
     - iOS Store Applications
   - App Configuration Policies
   - Administrative Templates
   - Platform Scripts
-  - Mac OS Scripts
-  - **Device Management Intents** (new)
+  - macOS Scripts
+  - Device Management Intents
+  - macOS Device Custom Attributes
 - **Assignment Management:**
   - Add and delete assignments for selected policies.
   - Search Security Groups.
