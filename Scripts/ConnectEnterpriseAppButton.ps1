@@ -106,7 +106,7 @@ $ConnectEnterpriseAppButton.Add_Click({
             $StatusText.Text = "Error: Failed to connect to Microsoft Graph. Please try again."
         }
     })
-
+    Set-WindowIcon -Window $Window
     # Show the popup window
     $window.ShowDialog()
 })

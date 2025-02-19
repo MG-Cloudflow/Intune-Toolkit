@@ -41,6 +41,8 @@ function Get-AllSecurityGroups {
 #--------------------------------------------------------------------------------
 # Function: Set-WindowIcon
 # The WPF window object whose icon will be set.
+# Set-WindowIcon -Window $Window -IconFile "MyOtherIcon.ico"
+# Set-WindowIcon -Window $Window
 #--------------------------------------------------------------------------------
 function Set-WindowIcon {
     param (

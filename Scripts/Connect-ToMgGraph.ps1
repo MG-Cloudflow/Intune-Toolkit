@@ -136,7 +136,7 @@ function Show-InstallModulePopup {
         $window.DialogResult = $false
         $window.Close()
     })
-
+    Set-WindowIcon -Window $Window
     # Show the window and return the result
     return $window.ShowDialog()
 }
