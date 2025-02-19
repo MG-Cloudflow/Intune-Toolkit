@@ -194,7 +194,7 @@ function Get-DevicePlatform {
     } elseif ($OdataType -cmatch "(?i)ios") {
         return "iOS"
     } elseif ($OdataType -cmatch "(?i)macos") {
-        return "MacOS"
+        return "macOS"
     } elseif ($OdataType -cmatch "(?i)windows") {
         return "Windows"
     } else {
@@ -327,9 +327,9 @@ function Reload-Grid {
         } elseif ($type -eq "deviceManagementScripts") {
             $platform = "Windows"
         } elseif ($type -eq "deviceShellScripts") {
-            $platform = "MacOS"
+            $platform = "macOS"
         } elseif ($type -eq "deviceCustomAttributeShellScripts") {
-            $platform = "MacOS"
+            $platform = "macOS"
         } elseif ($type -eq "intents") {
             $platform = "Windows"
         } else {
