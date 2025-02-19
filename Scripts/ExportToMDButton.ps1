@@ -48,82 +48,94 @@ $ExportToMDButton.Add_Click({
         param (
             [Parameter(Mandatory=$true)]
             [string]$OutputPath,
-
+    
             [Parameter(Mandatory=$true)]
             [PSObject]$PolicyDataGrid,
-
+    
             [string]$CurrentPolicyType
         )
-
+    
         try {
+            # Retrieve tenant and user information from Graph
             $tenant = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization" -Method GET
             $user = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/me" -Method GET
             $tenantinfo = "Tenant: $($tenant.value[0].displayName)"
             $dateString = Get-Date -Format "dddd, MMMM dd, yyyy HH:mm:ss"
             $markdownContent = ""
-            $markdownContentHeader =""
+            $markdownContentHeader = ""
             $tocContent = "## Table of Contents`n`n"
+    
+            # Build header with current policy type and tenant info
             $markdownContentHeader += "# $global:CurrentPolicyType`n`n"
             $markdownContentHeader += "$tenantinfo`n`n"
             $markdownContentHeader += "Documentation Date: $dateString`n`n"
-
+    
             # Group policies by PolicyId and sort by Platform and PolicyName
             $uniquePolicies = $PolicyDataGrid | Group-Object -Property PolicyId | Sort-Object { $_.Group[0].Platform }, { $_.Group[0].PolicyName }
-
             $currentPlatform = ""
+    
             foreach ($policyGroup in $uniquePolicies) {
                 $firstPolicy = $policyGroup.Group[0]
                 $PolicyName = $firstPolicy.PolicyName
                 $PolicyDescription = $firstPolicy.PolicyDescription
                 $PolicyPlatform = $firstPolicy.Platform
-
+    
                 # Add platform title if it has changed
                 if ($currentPlatform -ne $PolicyPlatform) {
                     $currentPlatform = $PolicyPlatform
-                    $markdownContent += "## $($currentPlatform)`n`n"
-                    $tocContent += "- [$($currentPlatform)](#$($currentPlatform.ToLower())-applications)`n"
+                    $markdownContent += "## Platfrom : $currentPlatform`n`n"
+                    $tocContent += "- [$currentPlatform](#$($currentPlatform.ToLower())-applications)`n"
                 }
-
+    
                 # Add policy name to TOC
-                $tocContent += "  - [$($PolicyName)](#$(($PolicyName -replace ' ', '-').ToLower()))`n"
-
-                # Add policy name and description to markdown content
-                $markdownContent += "### $($PolicyName)`n`n"
+                $tocContent += "  - [$PolicyName](#$(($PolicyName -replace ' ', '-').ToLower()))`n"
+    
+                # Add policy details and description
+                $markdownContent += "### $PolicyName`n`n"
                 $markdownContent += "#### Description`n`n"
-                $markdownContent += "$($PolicyDescription)`n`n"
+                $markdownContent += "$PolicyDescription`n`n"
                 $markdownContent += "#### Assignments`n`n"
                 
-                # Add table headers based on policy type
-                if ($CurrentPolicyType -eq "mobileApps") {
-                    $markdownContent += "| GroupDisplayname | GroupId | AssignmentType | FilterDisplayname | FilterType | InstallIntent |`n"
-                    $markdownContent += "| ---------------- | ------- | -------------- | ----------------- | ---------- | ------------- |`n"
-                } else {
-                    $markdownContent += "| GroupDisplayname | GroupId | AssignmentType | FilterDisplayname | FilterType |`n"
-                    $markdownContent += "| ---------------- | ------- | -------------- | ----------------- | ---------- |`n"
+                # Build table headers based on policy type; Platform column is always included.
+                if ($global:CurrentPolicyType -eq "mobileApps") {
+                    $markdownContent += "| GroupDisplayname | GroupId | Platform | AssignmentType | FilterDisplayname | FilterType | InstallIntent |`n"
+                    $markdownContent += "| ---------------- | ------- | -------- | -------------- | ----------------- | ---------- | ------------- |`n"
                 }
-
-                # Add each assignment to the markdown table
+                elseif ($global:CurrentPolicyType -in @("deviceCustomAttributeShellScripts", "intents", "deviceShellScripts", "deviceManagementScripts")) {
+                    $markdownContent += "| GroupDisplayname | GroupId | Platform | AssignmentType |`n"
+                    $markdownContent += "| ---------------- | ------- | -------- | -------------- |`n"
+                }
+                else {
+                    $markdownContent += "| GroupDisplayname | GroupId | Platform | AssignmentType | FilterDisplayname | FilterType |`n"
+                    $markdownContent += "| ---------------- | ------- | -------- | -------------- | ----------------- | ---------- |`n"
+                }
+    
+                # Add each assignment as a row in the table
                 foreach ($policy in $policyGroup.Group) {
                     $GroupDisplayname = $policy.GroupDisplayname
                     $GroupId = $policy.GroupId
+                    $Platform = $policy.Platform
                     $AssignmentType = $policy.AssignmentType
                     $FilterDisplayname = $policy.FilterDisplayname
                     $FilterType = $policy.FilterType
                     $InstallIntent = $policy.InstallIntent
-
-                    if ($CurrentPolicyType -eq "mobileApps") {
-                        $markdownContent += "| $GroupDisplayname | $GroupId | $AssignmentType | $FilterDisplayname | $FilterType | $InstallIntent |`n"
-                    } else {
-                        $markdownContent += "| $GroupDisplayname | $GroupId | $AssignmentType | $FilterDisplayname | $FilterType |`n"
+    
+                    if ($global:CurrentPolicyType -eq "mobileApps") {
+                        $markdownContent += "| $GroupDisplayname | $GroupId | $Platform | $AssignmentType | $FilterDisplayname | $FilterType | $InstallIntent |`n"
+                    }
+                    elseif ($global:CurrentPolicyType -in @("deviceCustomAttributeShellScripts", "intents", "deviceShellScripts", "deviceManagementScripts")) {
+                        $markdownContent += "| $GroupDisplayname | $GroupId | $Platform | $AssignmentType |`n"
+                    }
+                    else {
+                        $markdownContent += "| $GroupDisplayname | $GroupId | $Platform | $AssignmentType | $FilterDisplayname | $FilterType |`n"
                     }
                 }
-
                 $markdownContent += "`n`n"
             }
-
-            # Combine TOC and main content
+    
+            # Combine header, table of contents, and main content
             $finalContent = "$markdownContentHeader`n$tocContent`n$markdownContent"
-
+    
             # Write the markdown content to a file
             try {
                 $finalContent | Out-File -FilePath $OutputPath -Encoding utf8
@@ -140,7 +152,7 @@ $ExportToMDButton.Add_Click({
             [System.Windows.MessageBox]::Show("An error occurred during Markdown export: $_", "Export Failed", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
         }
     }
-
+    
     <#
     .SYNOPSIS
     Retrieves policies to be exported based on user selection.

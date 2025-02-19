@@ -5,6 +5,7 @@
     - Added support for **bulk assignment** of macOS custom attributes, streamlining device management at scale.
     - Introduced functionality for **bulk deletion** of macOS custom attributes, improving efficiency in policy cleanup.
     - **Document Assignments** feature enables comprehensive tracking and reporting of macOS custom attribute configurations.
+      - added extra platfrom information to markdown file
     - **Backup and Restore** capabilities now support macOS custom attribute assignments, ensuring quick recovery and replication of configurations.
 - **Bug Fixes & UI Improvements**
   - Resolved an issue where **disabled buttons** appeared incorrectly enabled in certain UI states.
@@ -14,6 +15,7 @@
   - Build In safty to check if both filter fields are filled in before you can assign the policy if one of them is assinged
   - Add Intune-Toolki Icon
   - Cleanup Code & Added extra Comments in the Code to make it more readable
+  - Correct naming of macOS Platform ;-)
 
 
 ### v0.2.9.0
