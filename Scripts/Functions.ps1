@@ -523,3 +523,149 @@ function Load-PolicyData {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
     }
 }
+
+#--------------------------------------------------------------------------------
+# Function: Show-BaselineSelectionDialog
+# This function loads a XAML-based dialog that displays a multi-select ListBox populated with the baseline items 
+# provided via the -Items parameter. It logs the items passed in and the final selection for troubleshooting.
+# It returns an array of the selected baseline names or $null if no selection is made
+#--------------------------------------------------------------------------------
+
+function Show-BaselineSelectionDialog {
+    param (
+        [Parameter(Mandatory = $true)]
+        [array]$Items,
+        [string]$Title = "Select Baselines"
+    )
+
+    Write-IntuneToolkitLog "Show-BaselineSelectionDialog function called with baseline items: $($Items -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+
+    # Load the XAML for the selection dialog.
+    $xamlPath = ".\XML\BaselineSelectionDialog.xaml"  # Ensure this path is correct
+    if (-not (Test-Path $xamlPath)) {
+        $errorMessage = "BaselineSelectionDialog XAML file not found at $xamlPath"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+
+    [xml]$xaml = Get-Content $xamlPath
+    $reader = New-Object System.Xml.XmlNodeReader $xaml
+    $Window = [Windows.Markup.XamlReader]::Load($reader)
+    if (-not $Window) {
+        $errorMessage = "Failed to load XAML from $xamlPath"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+
+    # Set the window title.
+    if ($Title) {
+        $Window.Title = $Title
+    }
+
+    # Retrieve UI elements.
+    $BaselineListBox = $Window.FindName("BaselineListBox")
+    $OkButton = $Window.FindName("OkButton")
+    $CancelButton = $Window.FindName("CancelButton")
+
+    if (-not $BaselineListBox) {
+        $errorMessage = "BaselineListBox not found in XAML"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+    if (-not $OkButton) {
+        $errorMessage = "OkButton not found in XAML"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+    if (-not $CancelButton) {
+        $errorMessage = "CancelButton not found in XAML"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+
+    Write-IntuneToolkitLog "UI elements for baseline selection loaded successfully" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+
+    # Populate the ListBox with the provided baseline items.
+    foreach ($item in $Items) {
+        $listBoxItem = New-Object System.Windows.Controls.ListBoxItem
+        $listBoxItem.Content = $item
+        $BaselineListBox.Items.Add($listBoxItem)
+    }
+
+    # Enable multi-selection.
+    $BaselineListBox.SelectionMode = 'Extended'
+
+    # OK button event: capture the selected items, log them, and close the window.
+    $OkButton.Add_Click({
+        $selectedItems = @()
+        foreach ($selected in $BaselineListBox.SelectedItems) {
+            $selectedItems += $selected.Content
+        }
+        Write-IntuneToolkitLog "User selected baselines: $($selectedItems -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        $Window.DialogResult = $true
+        $Window.Close()
+    })
+
+    # Cancel button event: log cancellation and close the window.
+    $CancelButton.Add_Click({
+        Write-IntuneToolkitLog "User canceled baseline selection." -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        $Window.DialogResult = $false
+        $Window.Close()
+    })
+
+    # Show the window modally.
+    $Window.ShowDialog() | Out-Null
+
+    # Return the selected baseline names if OK was pressed and at least one item was selected.
+    if ($Window.DialogResult -eq $true -and $BaselineListBox.SelectedItems.Count -gt 0) {
+        $selected = $BaselineListBox.SelectedItems | ForEach-Object { $_.Content }
+        Write-IntuneToolkitLog "Returning selected baselines: $($selected -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $selected
+    } else {
+        Write-IntuneToolkitLog "No baseline selected or user canceled selection." -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-SettingDisplayValue 
+# This function now lets users select one or more baseline folders, returning the selected names for further processing in your toolkit
+#--------------------------------------------------------------------------------
+function Get-SettingDisplayValue {
+    param (
+        [string]$settingValueId,
+        [array]$Catalog
+    )
+    foreach ($entry in $Catalog) {
+        if ($entry.options) {
+            foreach ($option in $entry.options) {
+                if ($option.itemId -eq $settingValueId) {
+                    return $option.displayName
+                }
+            }
+        }
+    }
+    return $settingValueId
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-SettingDescription
+# This function now lets users select one or more baseline folders, returning the selected names for further processing in your toolkit
+#--------------------------------------------------------------------------------
+function Get-SettingDescription {
+    param (
+        [string]$settingId,
+        [array]$Catalog
+    )
+    foreach ($entry in $Catalog) {
+        if ($entry.id -eq $settingId) {
+            return $entry.displayName
+        }
+    }
+    return $settingId
+}
