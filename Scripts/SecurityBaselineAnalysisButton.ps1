@@ -240,7 +240,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     $baselineSetting = $baselineEntry.Setting
                     $baselineId = $baselineSetting.settingInstance.settingDefinitionId
                     $expectedValue = $baselineSetting.settingInstance.choiceSettingValue.value
-                    if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
+                    #if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
                     $matches = $mergedSettings | Where-Object { $_.Setting.settingInstance.settingDefinitionId -eq $baselineId }
                     if (-not $matches -or $matches.Count -eq 0) {
                         $missingSettings++
@@ -295,7 +295,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     $baselineSetting = $baselineEntry.Setting
                     $baselineId = $baselineSetting.settingInstance.settingDefinitionId
                     $expectedValue = $baselineSetting.settingInstance.choiceSettingValue.value
-                    if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
+                    #if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
                     $readableExpected = if ($Catalog.Count -gt 0) { Get-SettingDisplayValue -settingValueId $expectedValue -Catalog $Catalog } else { $expectedValue }
                     $description = if ($Catalog.Count -gt 0) { Get-SettingDescription -settingId $baselineId -Catalog $Catalog } else { $baselineId }
                     $matches = $mergedSettings | Where-Object { $_.Setting.settingInstance.settingDefinitionId -eq $baselineId }
