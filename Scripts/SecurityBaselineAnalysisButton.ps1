@@ -12,8 +12,10 @@ Triggered via a UI button click, the script:
   - Scans the baseline root folder (".\SupportFiles\Intune Baselines") to find available baseline folders.
   - If multiple baseline folders exist, it calls the Show-BaselineSelectionDialog function (from functions.ps1)
     to allow the user to select one or more baselines.
-  - For each selected baseline folder, it looks for a "SettingsCatalog" subfolder and reads the JSON files within.
-  - Merges all baseline settings (tagged with their source baseline name).
+  - For each selected baseline folder, it looks for a "SettingsCatalog" subfolder and reads all JSON files.
+    Each JSON file is expected to have a "settings" array and a "name" property. The baseline policy name
+    is taken from the JSON file's "name" property. If missing, it falls back to the folder name.
+  - Merges all baseline settings (tagged with their baseline policy name).
   - Loads (or fetches) a human-readable settings catalog (from ".\SupportFiles\SettingsCatalog.json")
     for descriptions and display values.
   - Compares the merged baseline settings against the merged policy settings, calculating summary
@@ -164,9 +166,17 @@ $SecurityBaselineAnalysisButton.Add_Click({
                         continue
                     }
                     if ($jsonContent.settings) {
+                        # Extract the baseline policy name from the JSON file.
+                        $baselinePolicyName = $jsonContent.name
+                        if (-not $baselinePolicyName) {
+                            Write-IntuneToolkitLog "No 'name' property found in $($file.FullName); using folder name $($folder.Name) as baseline policy name" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                            $baselinePolicyName = $folder.Name
+                        } else {
+                            Write-IntuneToolkitLog "Extracted baseline policy name '$baselinePolicyName' from $($file.FullName)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                        }
                         foreach ($setting in $jsonContent.settings) {
                             $mergedBaselineSettings += [PSCustomObject]@{
-                                BaselinePolicy = $folder.Name
+                                BaselinePolicy = $baselinePolicyName
                                 Setting        = $setting
                             }
                         }
@@ -265,7 +275,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
         # ---------------------------------------------------------------------------
         $reportLines = @()
         try {
-            $reportLines += "# Security Baseline Analysis Report"
+            $reportLines += "# $($folder.Name) Baseline Analysis Report"
             $reportLines += ""
             $reportLines += "## Summary"
             $reportLines += ""
