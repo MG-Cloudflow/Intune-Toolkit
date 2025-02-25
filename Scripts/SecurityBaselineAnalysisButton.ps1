@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
 Performs a detailed security baseline analysis by retrieving configuration policy settings,
-merging them, dynamically selecting and merging baseline settings from one or more selected
-baseline folders, comparing the two sets, and generating a Markdown report.
+merging them, dynamically selecting and merging baseline policies from selected baseline folders,
+comparing the two sets, and generating a Markdown report.
 
 .DESCRIPTION
 Triggered via a UI button click, the script:
@@ -12,10 +12,10 @@ Triggered via a UI button click, the script:
   - Scans the baseline root folder (".\SupportFiles\Intune Baselines") to find available baseline folders.
   - If multiple baseline folders exist, it calls the Show-BaselineSelectionDialog function (from functions.ps1)
     to allow the user to select one or more baselines.
-  - For each selected baseline folder, it looks for a "SettingsCatalog" subfolder and reads all JSON files.
-    Each JSON file is expected to have a "settings" array and a "name" property. The baseline policy name
-    is taken from the JSON file's "name" property. If missing, it falls back to the folder name.
-  - Merges all baseline settings (tagged with their baseline policy name).
+  - For each selected baseline folder, it reads all JSON files from its "SettingsCatalog" subfolder.
+    If more than one JSON file exists, it prompts the user to select which baseline policies (using the JSON “name” property)
+    they want to include.
+  - Merges the settings from the selected JSON files (tagging each with its baseline policy name from the JSON file).
   - Loads (or fetches) a human-readable settings catalog (from ".\SupportFiles\SettingsCatalog.json")
     for descriptions and display values.
   - Compares the merged baseline settings against the merged policy settings, calculating summary
@@ -30,7 +30,8 @@ Date: [Insert Date]
 
 .EXAMPLE
 $SecurityBaselineAnalysisButton.Add_Click({
-    # Executes the baseline analysis with detailed logging and error handling.
+    # Executes the baseline analysis with detailed logging, baseline folder selection,
+    # and baseline policy selection for folders containing multiple policies.
 })
 #>
 
@@ -143,7 +144,8 @@ $SecurityBaselineAnalysisButton.Add_Click({
         }
 
         # ---------------------------------------------------------------------------
-        # Merge Settings Catalogs from each selected baseline folder.
+        # For each selected baseline folder, if multiple baseline policies (JSON files) exist,
+        # prompt the user to select which baseline policies to compare.
         # ---------------------------------------------------------------------------
         $mergedBaselineSettings = @()
         foreach ($folder in $selectedBaselineFolders) {
@@ -156,6 +158,44 @@ $SecurityBaselineAnalysisButton.Add_Click({
                 }
                 Write-IntuneToolkitLog "Processing baseline folder: $($folder.Name) with catalog path: $settingsCatalogPath" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
                 $catalogFiles = Get-ChildItem -Path $settingsCatalogPath -Filter *.json
+
+                # If more than one JSON file is present, let the user choose which baseline policies to include.
+                if ($catalogFiles.Count -gt 1) {
+                    $policyNames = @()
+                    foreach ($file in $catalogFiles) {
+                        try {
+                            $jsonContent = Get-Content $file.FullName -Raw | ConvertFrom-Json
+                            $policyName = $jsonContent.name
+                            if (-not $policyName) { 
+                                $policyName = $file.BaseName
+                                Write-IntuneToolkitLog "No 'name' property in $($file.FullName); using file name '$policyName'" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                            } else {
+                                Write-IntuneToolkitLog "Found baseline policy '$policyName' in file $($file.FullName)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                            }
+                            $policyNames += $policyName
+                        } catch {
+                            Write-IntuneToolkitLog "Error extracting baseline policy name from file $($file.FullName): $($_.Exception.Message)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                        }
+                    }
+                    $selectedPolicyNames = Show-BaselineSelectionDialog -Items $policyNames -Title "Select Baseline Policies from $($folder.Name)" -Height 500 -Width 600
+                    if (-not $selectedPolicyNames) {
+                        Write-IntuneToolkitLog "User did not select any baseline policies for folder: $($folder.Name)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                        continue
+                    }
+                    # Filter catalog files to include only those with a matching baseline policy name.
+                    $catalogFiles = $catalogFiles | Where-Object {
+                        try {
+                            $jsonContent = Get-Content $_.FullName -Raw | ConvertFrom-Json
+                            $filePolicyName = $jsonContent.name
+                            if (-not $filePolicyName) { $filePolicyName = $_.BaseName }
+                            return $selectedPolicyNames -contains $filePolicyName
+                        } catch {
+                            return $false
+                        }
+                    }
+                }
+
+                # Process the remaining catalog files.
                 foreach ($file in $catalogFiles) {
                     try {
                         Write-IntuneToolkitLog "Attempting to load JSON file: $($file.FullName)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
@@ -166,7 +206,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                         continue
                     }
                     if ($jsonContent.settings) {
-                        # Extract the baseline policy name from the JSON file.
+                        # Extract baseline policy name from the JSON file.
                         $baselinePolicyName = $jsonContent.name
                         if (-not $baselinePolicyName) {
                             Write-IntuneToolkitLog "No 'name' property found in $($file.FullName); using folder name $($folder.Name) as baseline policy name" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
@@ -240,7 +280,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     $baselineSetting = $baselineEntry.Setting
                     $baselineId = $baselineSetting.settingInstance.settingDefinitionId
                     $expectedValue = $baselineSetting.settingInstance.choiceSettingValue.value
-                    #if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
+                    # if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
                     $matches = $mergedSettings | Where-Object { $_.Setting.settingInstance.settingDefinitionId -eq $baselineId }
                     if (-not $matches -or $matches.Count -eq 0) {
                         $missingSettings++
@@ -275,7 +315,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
         # ---------------------------------------------------------------------------
         $reportLines = @()
         try {
-            $reportLines += "# $($folder.Name) Baseline Analysis Report"
+            $reportLines += "# $($folder.Name) Baseline Analysis Report"            
             $reportLines += ""
             $reportLines += "## Summary"
             $reportLines += ""
@@ -295,7 +335,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     $baselineSetting = $baselineEntry.Setting
                     $baselineId = $baselineSetting.settingInstance.settingDefinitionId
                     $expectedValue = $baselineSetting.settingInstance.choiceSettingValue.value
-                    #if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
+                    # if ([string]::IsNullOrEmpty($expectedValue)) { $expectedValue = "Not Defined" }
                     $readableExpected = if ($Catalog.Count -gt 0) { Get-SettingDisplayValue -settingValueId $expectedValue -Catalog $Catalog } else { $expectedValue }
                     $description = if ($Catalog.Count -gt 0) { Get-SettingDescription -settingId $baselineId -Catalog $Catalog } else { $baselineId }
                     $matches = $mergedSettings | Where-Object { $_.Setting.settingInstance.settingDefinitionId -eq $baselineId }

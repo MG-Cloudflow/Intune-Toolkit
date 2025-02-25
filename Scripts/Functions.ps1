@@ -535,7 +535,9 @@ function Show-BaselineSelectionDialog {
     param (
         [Parameter(Mandatory = $true)]
         [array]$Items,
-        [string]$Title = "Select Baselines"
+        [string]$Title = "Select Baselines",
+        [int]$Height = 400,
+        [int]$Width = 400
     )
 
     Write-IntuneToolkitLog "Show-BaselineSelectionDialog function called with baseline items: $($Items -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
@@ -559,10 +561,12 @@ function Show-BaselineSelectionDialog {
         return $null
     }
 
-    # Set the window title.
+    # Set the window title and override dimensions.
     if ($Title) {
         $Window.Title = $Title
     }
+    $Window.Height = $Height
+    $Window.Width  = $Width
 
     # Retrieve UI elements.
     $BaselineListBox = $Window.FindName("BaselineListBox")
@@ -618,6 +622,7 @@ function Show-BaselineSelectionDialog {
         $Window.Close()
     })
 
+    Set-WindowIcon -Window $Window
     # Show the window modally.
     $Window.ShowDialog() | Out-Null
 
