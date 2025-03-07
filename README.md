@@ -1,6 +1,6 @@
 # Intune Toolkit
 
-## Overview
+## Overview.
 
 The Intune Toolkit is a PowerShell-based solution designed to simplify the management of Microsoft Intune policies. It provides a user-friendly interface for connecting to Microsoft Graph, managing policy assignments, and handling backup and restore operations for these assignments. The toolkit focuses on functionalities such as backing up and restoring policy assignments, adding or deleting assignments, and retrieving policy details (including the new device management intents) with robust error handling and detailed logging.
 
