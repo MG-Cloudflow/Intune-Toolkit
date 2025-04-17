@@ -18,68 +18,6 @@ $DeleteAssignmentButton.Add_Click({
 #>
 
 #--------------------------------------------------------------------------------
-# Helper Function: Show-DeleteConfirmationDialog
-#--------------------------------------------------------------------------------
-# Displays a confirmation dialog using a XAML-based UI and returns the user's choice.
-function Show-DeleteConfirmationDialog {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$SummaryText
-    )
-
-    # Define the path to the XAML file that contains the dialog layout.
-    $xamlPath = ".\XML\DeleteConfirmationDialog.xaml"
-    if (-not (Test-Path $xamlPath)) {
-        Write-IntuneToolkitLog "DeleteConfirmationDialog XAML file not found at $xamlPath" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
-        return $false
-    }
-
-    # Load the XAML content and create a Window object.
-    [xml]$xaml = Get-Content $xamlPath
-    $reader = New-Object System.Xml.XmlNodeReader $xaml
-    $Window = [Windows.Markup.XamlReader]::Load($reader)
-
-    if (-not $Window) {
-        Write-IntuneToolkitLog "Failed to load DeleteConfirmationDialog XAML" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
-        return $false
-    }
-
-    # Retrieve key UI elements from the loaded XAML.
-    $TitleTextBlock = $Window.FindName("ModuleInstallMessage")
-    $DetailsTextBlock = $Window.FindName("DeleteDetailsTextBlock")
-    $OkButton = $Window.FindName("OKButton")
-    $CancelButton = $Window.FindName("CancelButton")
-
-    # Ensure all required UI elements are present.
-    if (-not $TitleTextBlock -or -not $DetailsTextBlock -or -not $OkButton -or -not $CancelButton) {
-        Write-IntuneToolkitLog "One or more required UI elements not found in DeleteConfirmationDialog" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
-        return $false
-    }
-
-    # Set the details text with the summary provided by the caller.
-    $DetailsTextBlock.Text = $SummaryText
-
-    # Register click event for the OK button.
-    $OkButton.Add_Click({
-        Write-IntuneToolkitLog "OK button clicked in DeleteConfirmationDialog" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
-        $Window.DialogResult = $true
-        $Window.Close()
-    })
-
-    # Register click event for the Cancel button.
-    $CancelButton.Add_Click({
-        Write-IntuneToolkitLog "Cancel button clicked in DeleteConfirmationDialog" -component "Show-DeleteConfirmationDialog" -file "DeleteAssignmentButton.ps1"
-        $Window.DialogResult = $false
-        $Window.Close()
-    })
-
-    # Show the dialog and return the result (True if OK was clicked, False otherwise).
-    Set-WindowIcon -Window $Window
-    $result = $Window.ShowDialog()
-    return $result
-}
-
-#--------------------------------------------------------------------------------
 # Main DeleteAssignmentButton Click Event
 #--------------------------------------------------------------------------------
 $DeleteAssignmentButton.Add_Click({
@@ -109,7 +47,7 @@ $DeleteAssignmentButton.Add_Click({
             #--------------------------------------------------------------------------------
             # Display the confirmation dialog and capture the user's response.
             #--------------------------------------------------------------------------------
-            $confirm = Show-DeleteConfirmationDialog -SummaryText $summaryText
+            $confirm = Show-ConfirmationDialog -SummaryText $summaryText
             if (-not $confirm) {
                 Write-IntuneToolkitLog "User canceled deletion" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
                 return

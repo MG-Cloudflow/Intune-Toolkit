@@ -731,7 +731,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
         #--------------------------------------------------------------------------------
         try {
             $reportLines = @()
-            $reportLines += "# Baseline Analysis Report (Raw Comparison)"
+            $reportLines += "# $($folder.Name) Analysis Report "
             $reportLines += ""
             $reportLines += "## Summary"
             $reportLines += ""

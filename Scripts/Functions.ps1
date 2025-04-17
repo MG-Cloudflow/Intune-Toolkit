@@ -636,3 +636,92 @@ function Show-BaselineSelectionDialog {
         return $null
     }
 }
+
+#--------------------------------------------------------------------------------
+# Helper Function: Show-ConfirmationDialog
+#--------------------------------------------------------------------------------
+# Displays a confirmation dialog using a XAML-based UI and returns the user's choice.
+function Show-ConfirmationDialog {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$SummaryText
+    )
+
+    # Define the path to the XAML file that contains the dialog layout.
+    $xamlPath = ".\XML\ConfirmationDialog.xaml"
+    if (-not (Test-Path $xamlPath)) {
+        Write-IntuneToolkitLog "ConfirmationDialog XAML file not found at $xamlPath" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        return $false
+    }
+
+    # Load the XAML content and create a Window object.
+    [xml]$xaml   = Get-Content $xamlPath
+    $reader      = New-Object System.Xml.XmlNodeReader $xaml
+    $Window      = [Windows.Markup.XamlReader]::Load($reader)
+    if (-not $Window) {
+        Write-IntuneToolkitLog "Failed to load ConfirmationDialog XAML" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        return $false
+    }
+
+    # Retrieve UI elements.
+    $TitleTextBlock    = $Window.FindName("ModuleInstallMessage")
+    $DetailsTextBlock  = $Window.FindName("DeleteDetailsTextBlock")
+    $OkButton          = $Window.FindName("OKButton")
+    $CopyButton        = $Window.FindName("CopyButton")
+    $CancelButton      = $Window.FindName("CancelButton")
+
+    if (-not ($TitleTextBlock -and $DetailsTextBlock -and $OkButton -and $CopyButton -and $CancelButton)) {
+        Write-IntuneToolkitLog "One or more required UI elements not found in ConfirmationDialog" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        return $false
+    }
+
+    # Populate the details text.
+    $DetailsTextBlock.Text = $SummaryText
+
+    # OK button: return $true
+    $OkButton.Add_Click({
+        Write-IntuneToolkitLog "OK clicked in ConfirmationDialog" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        $Window.DialogResult = $true
+        $Window.Close()
+    })
+
+    # Copy button: copy all but the last line of $SummaryText
+    $CopyButton.Add_Click({
+        try {
+            # Split into lines, drop the last one
+            $lines = $SummaryText -split "`r?`n"
+            if ($lines.Count -gt 1) {
+                $textToCopy = ($lines[0..($lines.Count - 2)] -join "`n")
+            }
+            else {
+                $textToCopy = ""
+            }
+
+            Set-Clipboard -Value $textToCopy
+            Write-IntuneToolkitLog "Summary (minus last line) copied to clipboard" `
+                -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+            [System.Windows.MessageBox]::Show("Summary copied to clipboard.","Info")
+        }
+        catch {
+            Write-IntuneToolkitLog "Failed to copy to clipboard: $_" `
+                -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+            [System.Windows.MessageBox]::Show("Failed to copy.","Error")
+        }
+    })
+
+    # Cancel button: return $false
+    $CancelButton.Add_Click({
+        Write-IntuneToolkitLog "Cancel clicked in ConfirmationDialog" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        $Window.DialogResult = $false
+        $Window.Close()
+    })
+
+    # Display the dialog
+    Set-WindowIcon -Window $Window
+    return $Window.ShowDialog()
+}
