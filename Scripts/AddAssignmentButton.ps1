@@ -93,7 +93,7 @@ $AddAssignmentButton.Add_Click({
                 $line += " - [Filter: $($selection.Filter.Content)]"
             }
             if ($selection.FilterType) {
-                $line += " - [Intent: $($selection.FilterType)]"
+                $line += " - [Filter Type: $($selection.FilterType)]"
             }
             $line
         }
