@@ -118,17 +118,20 @@
         </DataGrid>
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Grid.Row="3" Grid.Column="1" Margin="10">
             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                <Button x:Name="RenameButton" Content="Edit Name/Description" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="SecurityBaselineAnalysisButton" Content="Compare With Security Baseline" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="RenameButton" Content="Edit Name/Description" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="DeleteAssignmentButton" Content="Delete Assignment" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="SecurityBaselineAnalysisButton" Content="Compare" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                <Button x:Name="BackupButton" Content="Backup Assignments" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="RestoreButton" Content="Restore Assignments" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
-                <Button x:Name="ExportToMDButton" Content="Export to MD" Width="200" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="BackupButton" Content="Backup Assignments" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="RestoreButton" Content="Restore Assignments" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="ExportToCSVButton" Content="Export to CSV" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="ExportToMDButton" Content="Export to MD" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
             </StackPanel>
         </StackPanel>
+         <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="5" Height="30">
+                <TextBlock x:Name="ToolkitVersion" Text="" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5"/>
+        </Border>
     </Grid>
 </Window>

@@ -39,7 +39,7 @@ function Get-AndroidManagedStoreAppAssignmentSettings {
     $settings = @{
         "@odata.type" = "$ODataType" + "AssignmentSettings"
         androidManagedStoreAppTrackIds = @()
-        autoUpdateMode = "default"
+        autoUpdateMode = "priority"
     }
 
     # Optionally log the constructed settings

@@ -16,7 +16,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.3.0.0"
+$currentVersion = "v0.3.1.0"
 
 #region Log File Setup
 # Define the log file path
@@ -112,6 +112,7 @@ function Show-Window {
         # Load UI Elements
         # ---------------------------
         $TenantInfo = $Window.FindName("TenantInfo")
+        $ToolkitVersion = $Window.FindName("ToolkitVersion")
         $StatusText = $Window.FindName("StatusText")
         $ConnectButton = $Window.FindName("ConnectButton")
         $ConnectEnterpriseAppButton = $Window.FindName("ConnectEnterpriseAppButton")
@@ -188,6 +189,7 @@ function Show-Window {
         # ---------------------------
         # Show the window
         # ---------------------------
+        $ToolkitVersion.Text = "Version: $currentVersion"
         $Window.ShowDialog() | Out-Null
         Write-IntuneToolkitLog "Displayed the window successfully"
     } catch {

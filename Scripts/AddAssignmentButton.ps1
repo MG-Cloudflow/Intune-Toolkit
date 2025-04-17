@@ -83,6 +83,29 @@ $AddAssignmentButton.Add_Click({
 
         Write-IntuneToolkitLog "Showed selection dialog" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
         Write-IntuneToolkitLog "Selected group: $($selection.Group.Tag)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+        #--------------------------------------------------------------------------------
+        # Build a summary string listing all assignments that will be Assigned.
+        #--------------------------------------------------------------------------------
+
+        $summaryLines = foreach ($pol in $selectedPolicies) {
+            $line = "Policy: $($pol.PolicyName) – Add to [Group: $($selection.Group.Content)]"
+            if ($selection.Filter) {
+                $line += " - [Filter: $($selection.Filter.Content)]"
+            }
+            if ($selection.FilterType) {
+                $line += " - [Filter Type: $($selection.FilterType)]"
+            }
+            $line
+        }
+        $summaryText = "The following assignments will be added:`n`n" + ($summaryLines -join "`n")
+        $summaryText += "`n`nAre you sure you want to proceed?"
+        
+        # Show the same confirmation dialog (you can rename it later)
+        $confirm = Show-ConfirmationDialog -SummaryText $summaryText
+        if (-not $confirm) {
+            Write-IntuneToolkitLog "User canceled add assignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+            return
+        }
 
         # --------------------------------------------------------------------------------
         # Process each selected policy.

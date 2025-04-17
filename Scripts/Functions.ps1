@@ -523,3 +523,205 @@ function Load-PolicyData {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
     }
 }
+
+#--------------------------------------------------------------------------------
+# Function: Show-BaselineSelectionDialog
+# This function loads a XAML-based dialog that displays a multi-select ListBox populated with the baseline items 
+# provided via the -Items parameter. It logs the items passed in and the final selection for troubleshooting.
+# It returns an array of the selected baseline names or $null if no selection is made
+#--------------------------------------------------------------------------------
+
+function Show-BaselineSelectionDialog {
+    param (
+        [Parameter(Mandatory = $true)]
+        [array]$Items,
+        [string]$Title = "Select Baselines",
+        [int]$Height = 400,
+        [int]$Width = 400
+    )
+
+    Write-IntuneToolkitLog "Show-BaselineSelectionDialog function called with baseline items: $($Items -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+
+    # Load the XAML for the selection dialog.
+    $xamlPath = ".\XML\BaselineSelectionDialog.xaml"  # Ensure this path is correct
+    if (-not (Test-Path $xamlPath)) {
+        $errorMessage = "BaselineSelectionDialog XAML file not found at $xamlPath"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+
+    [xml]$xaml = Get-Content $xamlPath
+    $reader = New-Object System.Xml.XmlNodeReader $xaml
+    $Window = [Windows.Markup.XamlReader]::Load($reader)
+    if (-not $Window) {
+        $errorMessage = "Failed to load XAML from $xamlPath"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+
+    # Set the window title and override dimensions.
+    if ($Title) {
+        $Window.Title = $Title
+    }
+    $Window.Height = $Height
+    $Window.Width  = $Width
+
+    # Retrieve UI elements.
+    $BaselineListBox = $Window.FindName("BaselineListBox")
+    $OkButton = $Window.FindName("OkButton")
+    $CancelButton = $Window.FindName("CancelButton")
+
+    if (-not $BaselineListBox) {
+        $errorMessage = "BaselineListBox not found in XAML"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+    if (-not $OkButton) {
+        $errorMessage = "OkButton not found in XAML"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+    if (-not $CancelButton) {
+        $errorMessage = "CancelButton not found in XAML"
+        Write-Error $errorMessage
+        Write-IntuneToolkitLog $errorMessage -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+
+    Write-IntuneToolkitLog "UI elements for baseline selection loaded successfully" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+
+    # Populate the ListBox with the provided baseline items.
+    foreach ($item in $Items) {
+        $listBoxItem = New-Object System.Windows.Controls.ListBoxItem
+        $listBoxItem.Content = $item
+        $BaselineListBox.Items.Add($listBoxItem)
+    }
+
+    # Enable multi-selection.
+    $BaselineListBox.SelectionMode = 'Extended'
+
+    # OK button event: capture the selected items, log them, and close the window.
+    $OkButton.Add_Click({
+        $selectedItems = @()
+        foreach ($selected in $BaselineListBox.SelectedItems) {
+            $selectedItems += $selected.Content
+        }
+        Write-IntuneToolkitLog "User selected baselines: $($selectedItems -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        $Window.DialogResult = $true
+        $Window.Close()
+    })
+
+    # Cancel button event: log cancellation and close the window.
+    $CancelButton.Add_Click({
+        Write-IntuneToolkitLog "User canceled baseline selection." -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        $Window.DialogResult = $false
+        $Window.Close()
+    })
+
+    Set-WindowIcon -Window $Window
+    # Show the window modally.
+    $Window.ShowDialog() | Out-Null
+
+    # Return the selected baseline names if OK was pressed and at least one item was selected.
+    if ($Window.DialogResult -eq $true -and $BaselineListBox.SelectedItems.Count -gt 0) {
+        $selected = $BaselineListBox.SelectedItems | ForEach-Object { $_.Content }
+        Write-IntuneToolkitLog "Returning selected baselines: $($selected -join ', ')" -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $selected
+    } else {
+        Write-IntuneToolkitLog "No baseline selected or user canceled selection." -component "Show-BaselineSelectionDialog" -file "functions.ps1"
+        return $null
+    }
+}
+
+#--------------------------------------------------------------------------------
+# Helper Function: Show-ConfirmationDialog
+#--------------------------------------------------------------------------------
+# Displays a confirmation dialog using a XAML-based UI and returns the user's choice.
+function Show-ConfirmationDialog {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$SummaryText
+    )
+
+    # Define the path to the XAML file that contains the dialog layout.
+    $xamlPath = ".\XML\ConfirmationDialog.xaml"
+    if (-not (Test-Path $xamlPath)) {
+        Write-IntuneToolkitLog "ConfirmationDialog XAML file not found at $xamlPath" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        return $false
+    }
+
+    # Load the XAML content and create a Window object.
+    [xml]$xaml   = Get-Content $xamlPath
+    $reader      = New-Object System.Xml.XmlNodeReader $xaml
+    $Window      = [Windows.Markup.XamlReader]::Load($reader)
+    if (-not $Window) {
+        Write-IntuneToolkitLog "Failed to load ConfirmationDialog XAML" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        return $false
+    }
+
+    # Retrieve UI elements.
+    $TitleTextBlock    = $Window.FindName("ModuleInstallMessage")
+    $DetailsTextBlock  = $Window.FindName("DeleteDetailsTextBlock")
+    $OkButton          = $Window.FindName("OKButton")
+    $CopyButton        = $Window.FindName("CopyButton")
+    $CancelButton      = $Window.FindName("CancelButton")
+
+    if (-not ($TitleTextBlock -and $DetailsTextBlock -and $OkButton -and $CopyButton -and $CancelButton)) {
+        Write-IntuneToolkitLog "One or more required UI elements not found in ConfirmationDialog" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        return $false
+    }
+
+    # Populate the details text.
+    $DetailsTextBlock.Text = $SummaryText
+
+    # OK button: return $true
+    $OkButton.Add_Click({
+        Write-IntuneToolkitLog "OK clicked in ConfirmationDialog" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        $Window.DialogResult = $true
+        $Window.Close()
+    })
+
+    # Copy button: copy all but the last line of $SummaryText
+    $CopyButton.Add_Click({
+        try {
+            # Split into lines, drop the last one
+            $lines = $SummaryText -split "`r?`n"
+            if ($lines.Count -gt 1) {
+                $textToCopy = ($lines[0..($lines.Count - 2)] -join "`n")
+            }
+            else {
+                $textToCopy = ""
+            }
+
+            Set-Clipboard -Value $textToCopy
+            Write-IntuneToolkitLog "Summary (minus last line) copied to clipboard" `
+                -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+            [System.Windows.MessageBox]::Show("Summary copied to clipboard.","Info")
+        }
+        catch {
+            Write-IntuneToolkitLog "Failed to copy to clipboard: $_" `
+                -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+            [System.Windows.MessageBox]::Show("Failed to copy.","Error")
+        }
+    })
+
+    # Cancel button: return $false
+    $CancelButton.Add_Click({
+        Write-IntuneToolkitLog "Cancel clicked in ConfirmationDialog" `
+            -component "Show-ConfirmationDialog" -file "Show-ConfirmationDialog.ps1"
+        $Window.DialogResult = $false
+        $Window.Close()
+    })
+
+    # Display the dialog
+    Set-WindowIcon -Window $Window
+    return $Window.ShowDialog()
+}

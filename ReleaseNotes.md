@@ -18,7 +18,6 @@
   - Cleanup Code & Added extra Comments in the Code to make it more readable
   - Correct naming of macOS Platform ;-)
 
-
 ### v0.2.9.0
 - **New Features**
   - **Security Baseline Analysis Report**
