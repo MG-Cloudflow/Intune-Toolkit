@@ -1,4 +1,21 @@
 # Release Notes
+### v0.3.1.0
+- **New Features**
+  - **Confirmation Pop-Ups**
+    - When Adding assignments there is now a confirmation pop up with an overview
+    - For Adding or Deteleting Assignments there is now a Copy To clibpoard Feature in the overview giving you the option to document the changes in your documentaion.
+  - **3th Party Baseline Comparisons**
+    - You can now compare your Intune Configuration Policies (Settings Catalog) to 3th party baselines or your own created baseline
+    - Big Thank you for @oktay-sari for providing me with the AllThingsCloud - MacOS Security Baselines [https://github.com/oktay-sari/]
+    - Also a Big Thank you to @SkipToTheEndpoint for providing me the OpenIntune Baseline [https://github.com/SkipToTheEndpoint]
+  - **MacOS Baseline Comparisons**
+    - Added Functionality to compare macOS Settings catalog templates
+- **Bug Fixes & UI Improvements**
+  - **Baseline Comparisons**
+    - Fixed Comparison issues on deeper levels in the json file
+  - **UI**
+    - Added Visual Intune Toolkit Version to the ui
+
 ### v0.3.0.0
 - **New Features**
   - **Custom Attributes Management for macOS**
