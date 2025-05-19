@@ -782,24 +782,145 @@ $SecurityBaselineAnalysisButton.Add_Click({
         }
 
         #--------------------------------------------------------------------------------
-        # Block: Save Report Using Save File Dialog
-        # Prompt the user to save the generated Markdown report to a file.
+        # Block: Save Report Using Save File Dialog (with separate CSVs)
+        # Prompt the user to save the generated Markdown report and two CSVs.
         #--------------------------------------------------------------------------------
         try {
-            Add-Type -AssemblyName System.Windows.Forms
-            $SaveDialog = New-Object System.Windows.Forms.SaveFileDialog
-            $SaveDialog.Filter = "Markdown files (*.md)|*.md|All files (*.*)|*.*"
-            $SaveDialog.Title = "Save Security Baseline Report As (Raw)"
-            if ($SaveDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $SaveDialog.FileName -ne "") {
-                $reportContent | Out-File -FilePath $SaveDialog.FileName -Encoding UTF8
-                Write-IntuneToolkitLog "Security baseline report exported to $($SaveDialog.FileName)" -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
-                [System.Windows.MessageBox]::Show("Security baseline report exported to $($SaveDialog.FileName)", "Success")
-            } else {
-                Write-IntuneToolkitLog "User canceled report export." -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
-                [System.Windows.MessageBox]::Show("Report export canceled.", "Information")
+            # --- Add filename template logic ---
+            $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+            $baseName  = "$($folder.Name)_AnalysisReport_$timestamp"
+            # ------------------------------------
+
+            # 1) Build two CSV tables: baseline comparison and extra policy settings
+            $baselineComparisonObjects = @()
+            foreach ($item in $flattenedBaseline) {
+                $bp               = $item.BaselinePolicy
+                $baselineId       = $item.BaselineId
+                $expectedValue    = $item.ExpectedValue
+
+                # Friendly lookups
+                if ($item.CompositeDescription -match "\\") {
+                    $displayName = Convert-CompositeToDisplay -RawComposite $item.CompositeDescription -CatalogDictionary $CatalogDictionary
+                } else {
+                    $displayName = Get-SettingDisplayValue -settingValueId $baselineId -CatalogDictionary $CatalogDictionary
+                }
+                $description = Get-SettingDescription -settingId $baselineId -CatalogDictionary $CatalogDictionary
+                $expected    = Get-SettingDisplayValue -settingValueId $expectedValue -CatalogDictionary $CatalogDictionary
+
+                # Find policy matches
+                $matches = $flattenedPolicy | Where-Object { $_.PolicySettingId -eq $baselineId }
+                if (-not $matches) {
+                    $status = 'Missing'
+                    $policies = ''
+                    $actual   = ''
+                } else {
+                    $policies = ($matches | ForEach-Object { $_.PolicyName }) -join '; '
+                    $actual   = ($matches | ForEach-Object {
+                        Get-SettingDisplayValue -settingValueId $_.ActualValue -CatalogDictionary $CatalogDictionary
+                    }) -join '; '
+                    $allMatch = $matches | ForEach-Object { $_.ActualValue } | Where-Object { $_ -ne $expectedValue } | Measure-Object | Select-Object -ExpandProperty Count
+                    $status   = if ($allMatch -eq 0) { 'Matches' } else { 'Differs' }
+                }
+
+                $baselineComparisonObjects += [PSCustomObject]@{
+                    BaselinePolicy     = $bp
+                    DisplayName        = $displayName
+                    Description        = $description
+                    ExpectedValue      = $expected
+                    ConfiguredPolicies = $policies
+                    ActualValues       = $actual
+                    Comparison         = $status
+                }
             }
-        } catch {
-            Write-IntuneToolkitLog "Error saving report: $($_.Exception.Message)" -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+
+            $extraSettingsObjects = @()
+            $baselineIds = $flattenedBaseline | ForEach-Object { $_.BaselineId } | Sort-Object -Unique
+            $allPolicyIds = $flattenedPolicy | ForEach-Object { $_.PolicySettingId } | Sort-Object -Unique
+            $extraIds = $allPolicyIds | Where-Object { $_ -notin $baselineIds }
+            foreach ($extraId in $extraIds) {
+                $matches = $flattenedPolicy | Where-Object { $_.PolicySettingId -eq $extraId }
+                $policies = ($matches | ForEach-Object { $_.PolicyName }) -join '; '
+                if ($extraId -match "\\") {
+                    $displayName = Convert-CompositeToDisplay -RawComposite $extraId -CatalogDictionary $CatalogDictionary
+                } else {
+                    $displayName = Get-SettingDisplayValue -settingValueId $extraId -CatalogDictionary $CatalogDictionary
+                }
+                $description = Get-SettingDescription -settingId $extraId -CatalogDictionary $CatalogDictionary
+                $actual      = ($matches | ForEach-Object {
+                    Get-SettingDisplayValue -settingValueId $_.ActualValue -CatalogDictionary $CatalogDictionary
+                }) -join '; '
+
+                $extraSettingsObjects += [PSCustomObject]@{
+                    PolicyName   = $policies
+                    DisplayName  = $displayName
+                    Description  = $description
+                    ActualValue  = $actual
+                }
+            }
+
+            # 2) Ask the user which formats to export
+            $formats = Show-ExportOptionsDialog
+            if (-not $formats -or $formats.Count -eq 0) {
+                Write-IntuneToolkitLog "User canceled export options." -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                [System.Windows.MessageBox]::Show("Export canceled by user.","Information")
+                return
+            }
+
+            Add-Type -AssemblyName System.Windows.Forms
+
+            # 3) For each selected format, show SaveFileDialog(s) and write out
+            foreach ($fmt in $formats) {
+                switch ($fmt) {
+                    "Markdown" {
+                        $dlgMd = New-Object System.Windows.Forms.SaveFileDialog
+                        $dlgMd.Filter   = "Markdown files (*.md)|*.md|All files (*.*)|*.*"
+                        $dlgMd.Title    = "Save Security Baseline Report as Markdown"
+                        $dlgMd.FileName = "$baseName.md"
+
+                        if ($dlgMd.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $dlgMd.FileName) {
+                            $reportContent | Out-File -FilePath $dlgMd.FileName -Encoding UTF8
+                            Write-IntuneToolkitLog "Exported Markdown report to $($dlgMd.FileName)" -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                        } else {
+                            Write-IntuneToolkitLog "User canceled Markdown export." -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                        }
+                    }
+                    "CSV" {
+                        # a) Baseline comparison CSV
+                        $dlg1 = New-Object System.Windows.Forms.SaveFileDialog
+                        $dlg1.Filter   = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
+                        $dlg1.Title    = "Save Baseline Comparison as CSV"
+                        $dlg1.FileName = "$baseName`_BaselineComparison.csv"
+
+                        if ($dlg1.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $dlg1.FileName) {
+                            $baselineComparisonObjects | Export-Csv -Path $dlg1.FileName -NoTypeInformation -Encoding UTF8
+                            Write-IntuneToolkitLog "Exported baseline CSV to $($dlg1.FileName)" -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                        } else {
+                            Write-IntuneToolkitLog "User canceled baseline CSV export." -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                        }
+
+                        # b) Extra policy settings CSV (if any)
+                        if ($extraSettingsObjects.Count -gt 0) {
+                            $dlg2 = New-Object System.Windows.Forms.SaveFileDialog
+                            $dlg2.Filter   = $dlg1.Filter
+                            $dlg2.Title    = "Save Extra Policy Settings as CSV"
+                            $dlg2.FileName = "$baseName`_ExtraSettings.csv"
+
+                            if ($dlg2.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $dlg2.FileName) {
+                                $extraSettingsObjects | Export-Csv -Path $dlg2.FileName -NoTypeInformation -Encoding UTF8
+                                Write-IntuneToolkitLog "Exported extra settings CSV to $($dlg2.FileName)" -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                            } else {
+                                Write-IntuneToolkitLog "User canceled extra CSV export." -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                            }
+                        }
+                    }
+                }
+            }
+
+            [System.Windows.MessageBox]::Show("Report export complete.","Success")
+        }
+        catch {
+            Write-IntuneToolkitLog "Error exporting reports: $($_.Exception.Message)" -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+            [System.Windows.MessageBox]::Show("Error exporting reports: $($_.Exception.Message)", "Error")
         }
     }
     catch {

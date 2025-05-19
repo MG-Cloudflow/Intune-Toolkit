@@ -636,6 +636,47 @@ function Show-BaselineSelectionDialog {
         return $null
     }
 }
+#--------------------------------------------------------------------------------
+# Function: Show-ExportOptionsDialog
+# This function loads a XAML-based dialog that displays checkboxes for Markdown and CSV export options.
+# It returns an array containing "Markdown", "CSV", or both, depending on the user's selection, or $null if canceled.
+#--------------------------------------------------------------------------------
+function Show-ExportOptionsDialog {
+    [xml]$xaml = Get-Content ".\XML\ExportOptionsDialog.xaml"
+    $reader = New-Object System.Xml.XmlNodeReader $xaml
+    $Window = [Windows.Markup.XamlReader]::Load($reader)
+
+    # Grab the controls
+    $MdChk  = $Window.FindName("MdCheckbox")
+    $CsvChk = $Window.FindName("CsvCheckbox")
+    $OkBtn  = $Window.FindName("OkButton")
+    $Cancel = $Window.FindName("CancelButton")
+
+    # Wire up the buttons to close the window
+    $OkBtn.Add_Click({
+        $Window.DialogResult = $true
+        $Window.Close()
+    })
+    $Cancel.Add_Click({
+        $Window.DialogResult = $false
+        $Window.Close()
+    })
+
+    # Show it modally
+    Set-WindowIcon -Window $Window
+
+    $Window.ShowDialog() | Out-Null
+
+    # Now after it closes, read DialogResult + checkboxes
+    if ($Window.DialogResult -eq $true) {
+        $sel = @()
+        if ($MdChk.IsChecked)  { $sel += "Markdown" }
+        if ($CsvChk.IsChecked) { $sel += "CSV" }
+        return $sel
+    } else {
+        return $null
+    }
+}
 
 #--------------------------------------------------------------------------------
 # Helper Function: Show-ConfirmationDialog
