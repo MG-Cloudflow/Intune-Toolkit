@@ -45,8 +45,8 @@ $AddAssignmentButton.Add_Click({
         # --------------------------------------------------------------------------------
 
         Write-IntuneToolkitLog "Fetched all security groups" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
-        # Clone the global security groups list to avoid modifying the original.
-        $allGroups = $global:AllSecurityGroups.Clone()
+        # Make sure we always have an array of groups, even if there's just one or none.
+        $allGroups = @($global:AllSecurityGroups)
 
         # Append special options for "All Users" and "All Devices".
         $allGroups += [PSCustomObject]@{ Id = "ALL_USERS"; Tag = "ALL_USERS"; DisplayName = "All Users" }
@@ -131,6 +131,8 @@ $AddAssignmentButton.Add_Click({
             }
 
             Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+            # Ensure assignments is always an array so we can add new entries without error
+            $assignments = @($assignments)
             Write-IntuneToolkitLog "Fetched assignments: $($assignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
             # --------------------------------------------------------------------------------
@@ -193,7 +195,7 @@ $AddAssignmentButton.Add_Click({
                         "#microsoft.graph.iosVppApp"                       { $settings = Get-IosVppAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.macOSDmgApp"                     { $settings = Get-MacOSDmgAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.macOSLobApp"                     { $settings = Get-MacOSLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.macOSPkgApp"                     { $settings = Get-MacOSPkgAppAssignmentSettings -ODataType $appODataType }
+                        "#microsoft.graph.macOSPkgApp"                     { $settings = Get-MacOSPkgAppAssignment.Settings -ODataType $appODataType }
                         "#microsoft.graph.managedAndroidLobApp"            { $settings = Get-ManagedAndroidLobAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.managedIOSLobApp"                { $settings = Get-ManagedIosLobAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.managedMobileLobApp"             { $settings = Get-ManagedMobileLobAppAssignmentSettings -ODataType $appODataType }
