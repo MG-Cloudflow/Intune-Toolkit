@@ -636,6 +636,47 @@ function Show-BaselineSelectionDialog {
         return $null
     }
 }
+#--------------------------------------------------------------------------------
+# Function: Show-ExportOptionsDialog
+# This function loads a XAML-based dialog that displays checkboxes for Markdown and CSV export options.
+# It returns an array containing "Markdown", "CSV", or both, depending on the user's selection, or $null if canceled.
+#--------------------------------------------------------------------------------
+function Show-ExportOptionsDialog {
+    [xml]$xaml = Get-Content ".\XML\ExportOptionsDialog.xaml"
+    $reader = New-Object System.Xml.XmlNodeReader $xaml
+    $Window = [Windows.Markup.XamlReader]::Load($reader)
+
+    # Grab the controls
+    $MdChk  = $Window.FindName("MdCheckbox")
+    $CsvChk = $Window.FindName("CsvCheckbox")
+    $OkBtn  = $Window.FindName("OkButton")
+    $Cancel = $Window.FindName("CancelButton")
+
+    # Wire up the buttons to close the window
+    $OkBtn.Add_Click({
+        $Window.DialogResult = $true
+        $Window.Close()
+    })
+    $Cancel.Add_Click({
+        $Window.DialogResult = $false
+        $Window.Close()
+    })
+
+    # Show it modally
+    Set-WindowIcon -Window $Window
+
+    $Window.ShowDialog() | Out-Null
+
+    # Now after it closes, read DialogResult + checkboxes
+    if ($Window.DialogResult -eq $true) {
+        $sel = @()
+        if ($MdChk.IsChecked)  { $sel += "Markdown" }
+        if ($CsvChk.IsChecked) { $sel += "CSV" }
+        return $sel
+    } else {
+        return $null
+    }
+}
 
 #--------------------------------------------------------------------------------
 # Helper Function: Show-ConfirmationDialog
@@ -725,3 +766,344 @@ function Show-ConfirmationDialog {
     Set-WindowIcon -Window $Window
     return $Window.ShowDialog()
 }
+
+#region Catalog Caching and Utility Functions
+
+#--------------------------------------------------------------------------------
+# Function: Build-CatalogDictionary
+# This function builds a dictionary from a provided catalog array for fast lookup.
+#--------------------------------------------------------------------------------
+function Build-CatalogDictionary {
+    param(
+        [Parameter(Mandatory=$true)]
+        [array]$Catalog
+    )
+    # Initialize an empty hashtable to store catalog items with lowercase keys.
+    $dict = @{}
+
+    # Local helper function to recursively add catalog entries (and their children) to the dictionary.
+    function Add-EntryToDict($entry) {
+        if ($null -eq $entry) { return }
+        # If the entry has options, iterate through each option to add them.
+        if ($entry.options) {
+            foreach ($option in $entry.options) {
+                if ($option.itemId) {
+                    $key = $option.itemId.ToLower()
+                    if (-not $dict.ContainsKey($key)) {
+                        $dict[$key] = $option
+                    }
+                }
+                if ($option.name) {
+                    $key = $option.name.ToLower()
+                    if (-not $dict.ContainsKey($key)) {
+                        $dict[$key] = $option
+                    }
+                }
+            }
+        }
+        # Check for properties "id" and add to dictionary.
+        if ($entry.PSObject.Properties["id"]) {
+            $id = $entry.id.ToString().ToLower()
+            if (-not $dict.ContainsKey($id)) {
+                $dict[$id] = $entry
+            }
+        }
+        # Check for "itemId" property and add to dictionary.
+        if ($entry.PSObject.Properties["itemId"]) {
+            $itemId = $entry.itemId.ToString().ToLower()
+            if (-not $dict.ContainsKey($itemId)) {
+                $dict[$itemId] = $entry
+            }
+        }
+        # Check for "name" property and add to dictionary.
+        if ($entry.PSObject.Properties["name"]) {
+            $name = $entry.name.ToString().ToLower()
+            if (-not $dict.ContainsKey($name)) {
+                $dict[$name] = $entry
+            }
+        }
+        # Recursively add any child entries if present.
+        if ($entry.Children) {
+            foreach ($child in $entry.Children) {
+                Add-EntryToDict $child
+            }
+        }
+    }
+
+    # Process each entry in the provided catalog.
+    foreach ($entry in $Catalog) {
+        Add-EntryToDict $entry
+    }
+    return $dict
+}
+
+#--------------------------------------------------------------------------------
+# Function: Maybe-Shorten
+# This function checks if the friendly value is identical to the raw value and is too long or contains XML.
+# If so, it returns a safety message.
+#--------------------------------------------------------------------------------
+function Maybe-Shorten {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$raw,
+        [Parameter(Mandatory=$true)]
+        [string]$friendly
+    )
+    # Remove any newlines and trim the friendly string.
+    $friendy = ($friendy -replace "[\r\n]+", " ").Trim()
+    if ($friendly.ToLower() -eq $raw.ToLower() -and $friendly.Length -gt 200 -or $friendly -contains "<?xml") {
+         return "Cannot display the value in report too Long"
+    }
+    return $friendly
+}
+
+#--------------------------------------------------------------------------------
+# Function: Find-CatalogEntry
+# This function looks up an entry in the catalog dictionary by a given key.
+#--------------------------------------------------------------------------------
+function Find-CatalogEntry {
+    param(
+        [Parameter(Mandatory=$true)]
+        [hashtable]$CatalogDictionary,
+        [Parameter(Mandatory=$true)]
+        [string]$Key
+    )
+    $lookupKey = $Key.ToLower()
+    if ($CatalogDictionary.ContainsKey($lookupKey)) {
+        Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+        return $CatalogDictionary[$lookupKey]
+    }
+    Write-IntuneToolkitLog "Find-CatalogEntry: No matching entry found for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    return $null
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-SettingDisplayValue
+# This function retrieves a friendly display value for a given setting ID from the catalog.
+#--------------------------------------------------------------------------------
+function Get-SettingDisplayValue {
+    param (
+        [string]$settingValueId,
+        [hashtable]$CatalogDictionary
+    )
+    Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingValueId
+    if ($entry) {
+        if ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
+            if ($entry.displayName -eq "Top Level Setting Group Collection") {
+                return $entry.name
+            }
+            return $entry.displayName
+        }
+        return $entry.name
+    }
+    return $settingValueId
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-SettingDescription
+# This function retrieves a friendly description for a given setting ID from the catalog.
+#--------------------------------------------------------------------------------
+function Get-SettingDescription {
+    param (
+        [string]$settingId,
+        [hashtable]$CatalogDictionary
+    )
+    Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingId
+    if ($entry) {
+        if ($entry.PSObject.Properties["description"] -and $entry.description -ne "") {
+            return ($entry.description -replace "[\r\n]+", " ").Trim()
+        }
+        elseif ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
+            return $entry.displayName
+        }
+        return $entry.name
+    }
+    return $settingId
+}
+
+#--------------------------------------------------------------------------------
+# Function: Convert-CompositeToDisplay
+# This function converts a composite (group-based) raw setting ID into a friendly display format.
+#--------------------------------------------------------------------------------
+function Convert-CompositeToDisplay {
+    param (
+       [string]$RawComposite,
+       [hashtable]$CatalogDictionary
+    )
+    # Split the composite string using the backslash separator.
+    $parts = $RawComposite -split '\\'
+    $displayParts = @()
+    foreach ($part in $parts) {
+        # Lookup each part's friendly display value.
+        $displayParts += (Get-SettingDisplayValue -settingValueId $part -CatalogDictionary $CatalogDictionary).Trim()
+    }
+    # Rejoin the parts with a backslash.
+    return ($displayParts -join "\")
+}
+
+#endregion Catalog Caching and Utility Functions
+
+#region Flattening Functions
+
+#--------------------------------------------------------------------------------
+# Function: Flatten-GroupSetting
+# This function flattens group-based baseline settings by processing each child setting individually.
+#--------------------------------------------------------------------------------
+function Flatten-GroupSetting {
+    param (
+        [string]$ParentId,
+        [array]$Children,
+        [string]$BaselinePolicy
+    )
+    $results = @()
+    foreach ($child in $Children) {
+        # Determine the expected value based on the type of setting value.
+        if ($child.choiceSettingValue -and $child.choiceSettingValue.value) {
+            $expected = "$($child.choiceSettingValue.value)"
+        }
+        elseif ($child.simpleSettingValue -and $child.simpleSettingValue.value) {
+            $expected = "$($child.simpleSettingValue.value)"
+        }
+        else {
+            $expected = "Not Defined"
+        }
+        # Build a composite description combining parent and child IDs.
+        $composite = "$ParentId\$($child.settingDefinitionId)"
+        Write-IntuneToolkitLog "Flattened baseline child: Composite='$composite', Expected='$expected'" -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+        # Create a custom object for the flattened baseline setting.
+        $results += [PSCustomObject]@{
+            BaselinePolicy       = $BaselinePolicy
+            CompositeDescription = $composite
+            BaselineId           = $child.settingDefinitionId
+            ExpectedValue        = $expected
+        }
+    }
+    return $results
+}
+
+#--------------------------------------------------------------------------------
+# Function: Flatten-BaselineSettings
+# This function flattens baseline settings by processing each entry and handling group-based settings.
+#--------------------------------------------------------------------------------
+function Flatten-BaselineSettings {
+    param (
+        [array]$MergedBaseline
+    )
+    $flat = @()
+    foreach ($entry in $MergedBaseline) {
+        $bp = $entry.BaselinePolicy
+        $bs = $entry.Setting
+        # Validate that the settingInstance and its settingDefinitionId exist.
+        if (-not $bs.settingInstance -or -not $bs.settingInstance.settingDefinitionId) {
+            Write-IntuneToolkitLog "Baseline entry for policy '$bp' missing settingInstance or settingDefinitionId." -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+            $flat += [PSCustomObject]@{
+                BaselinePolicy       = $bp
+                CompositeDescription = "(No settingInstance)"
+                BaselineId           = ""
+                ExpectedValue        = "Not Defined"
+            }
+            continue
+        }
+        # Check if the settingInstance is a group container.
+        if ($bs.settingInstance.'@odata.type' -eq "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance") {
+            Write-IntuneToolkitLog "Processing group container for baseline policy '$bp', ParentID: $($bs.settingInstance.settingDefinitionId)" -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+            $flat += Flatten-GroupSetting -ParentId $bs.settingInstance.settingDefinitionId -Children ($bs.settingInstance.groupSettingCollectionValue.children) -BaselinePolicy $bp
+        }
+        else {
+            # Process a single (non-group) baseline setting.
+            $baselineId = $bs.settingInstance.settingDefinitionId
+            if ($bs.settingInstance.choiceSettingValue -and $bs.settingInstance.choiceSettingValue.value) {
+                $expected = "$($bs.settingInstance.choiceSettingValue.value)"
+            }
+            elseif ($bs.settingInstance.simpleSettingValue -and $bs.settingInstance.simpleSettingValue.value) {
+                $expected = "$($bs.settingInstance.simpleSettingValue.value)"
+            }
+            else {
+                $expected = "Not Defined"
+            }
+            $flat += [PSCustomObject]@{
+                BaselinePolicy       = $bp
+                CompositeDescription = $baselineId
+                BaselineId           = $baselineId
+                ExpectedValue        = $expected
+            }
+        }
+    }
+    return $flat
+}
+
+#--------------------------------------------------------------------------------
+# Function: Flatten-PolicySettings
+# This function flattens policy settings retrieved from the Graph API, handling both single and group-based settings.
+#--------------------------------------------------------------------------------
+function Flatten-PolicySettings {
+    param (
+        [array]$MergedPolicy
+    )
+    $flat = @()
+    foreach ($entry in $MergedPolicy) {
+        $bp = $entry.PolicyName
+        $ps = $entry.Setting
+        # Validate that the settingInstance exists and contains a settingDefinitionId.
+        if (-not $ps.settingInstance -or -not $ps.settingInstance.settingDefinitionId) {
+            Write-IntuneToolkitLog "Policy entry for '$bp' missing settingInstance or settingDefinitionId." -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+            $flat += [PSCustomObject]@{
+                PolicyName           = $bp
+                CompositeDescription = "(No settingInstance)"
+                PolicySettingId      = ""
+                ActualValue          = "Not Defined"
+            }
+            continue
+        }
+        # If the policy setting is a group container, process each child setting.
+        if ($ps.settingInstance.'@odata.type' -eq "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance") {
+            Write-IntuneToolkitLog "Processing group container for policy '$bp', ParentID: $($ps.settingInstance.settingDefinitionId)" -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+            foreach ($group in $ps.settingInstance.groupSettingCollectionValue) {
+                foreach ($child in $group.children) {
+                    if ($child.choiceSettingValue -and $child.choiceSettingValue.value) {
+                        $actual = "$($child.choiceSettingValue.value)"
+                    }
+                    elseif ($child.simpleSettingValue -and $child.simpleSettingValue.value) {
+                        $actual = "$($child.simpleSettingValue.value)"
+                    }
+                    else {
+                        $actual = "Not Defined"
+                    }
+                    # Build a composite description for the child setting.
+                    $composite = "$($ps.settingInstance.settingDefinitionId)\$($child.settingDefinitionId)"
+                    Write-IntuneToolkitLog "Flattened policy child: Composite='$composite', Actual='$actual'" -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+                    $flat += [PSCustomObject]@{
+                        PolicyName           = $bp
+                        CompositeDescription = $composite
+                        PolicySettingId      = $child.settingDefinitionId
+                        ActualValue          = $actual
+                    }
+                }
+            }
+        }
+        else {
+            # Process a single (non-group) policy setting.
+            $policyId = $ps.settingInstance.settingDefinitionId
+            if ($ps.settingInstance.choiceSettingValue -and $ps.settingInstance.choiceSettingValue.value) {
+                $actual = "$($ps.settingInstance.choiceSettingValue.value)"
+            }
+            elseif ($ps.settingInstance.simpleSettingValue -and $ps.settingInstance.simpleSettingValue.value) {
+                $actual = "$($ps.settingInstance.simpleSettingValue.value)"
+            }
+            else {
+                $actual = "Not Defined"
+            }
+            $flat += [PSCustomObject]@{
+                PolicyName           = $bp
+                CompositeDescription = $policyId
+                PolicySettingId      = $policyId
+                ActualValue          = $actual
+            }
+        }
+    }
+    return $flat
+}
+
+#endregion Flattening Functions
