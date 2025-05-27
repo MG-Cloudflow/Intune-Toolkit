@@ -1,4 +1,19 @@
 # Release Notes
+### v0.3.2.0
+- **New Features**
+  - **Export Comparison Report to CSV**
+    - You can now choose when comparing with a baseline to export the report to CSV or Markdow.
+  - **New Application Types Add Assignments**
+    - androidForWorkApp
+    - androidLobApp
+    - androidStoreApp
+    - iosLobApp
+    - iosVppApp
+- **Bug Fixes & UI Improvements**
+  - **Add Assignments**
+    - Fixed issue when no Security groups are present in the tenant.
+
+
 ### v0.3.1.0
 - **New Features**
   - **Confirmation Pop-Ups**
