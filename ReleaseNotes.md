@@ -10,9 +10,12 @@
     - iosLobApp
     - iosVppApp
 
-- **Bug Fixes & UI Improvements**
+- **Bug Fixes & Improvements**
   - **Assignment Creation**
     - Fixed an issue when no security groups are present in the tenant.
+  - **Refactoring Code**
+    - Moved funtions to function File
+    - optimized some double code
 
 ### v0.3.1.0
 - **New Features**
