@@ -351,9 +351,35 @@ function Get-IosVppAppAssignmentSettings {
 
 
 function Get-MacOSDmgAppAssignmentSettings {
-    param ([string]$ODataType)
-    Write-IntuneToolkitLog "Get-MacOSDmgAppAssignmentSettings called with ODataType: $ODataType" -component "AssignmentSettingsFunctions" -file "AssignmentSettingsFunctions.ps1"
-    return Get-DefaultAppAssignmentSettings -ODataType $ODataType
+    param (
+        [string]$ODataType
+    )
+
+    <#
+    .NOTES
+    macOS DMG apps do not expose any assignment‐settings schema,
+    so this function always returns $null to produce `"settings": null`
+    in the Graph payload. Example payload:
+
+      {
+        "@odata.type": "#microsoft.graph.mobileAppAssignment",
+        "target": {
+          "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+          "groupId": "01234567-89ab-cdef-0123-456789abcdef"
+        },
+        "intent": "Required",
+        "settings": null
+      }
+
+    Source: aligned with AndroidStoreApp example
+    #>
+
+    # Log invocation
+    Write-IntuneToolkitLog "Get-MacOSPkgAppAssignmentSettings called with ODataType: $ODataType" `
+        -component "AssignmentSettingsFunctions" `
+        -file "AssignmentSettingsFunctions.ps1"
+
+    return $null
 }
 
 function Get-MacOSLobAppAssignmentSettings {
@@ -363,10 +389,35 @@ function Get-MacOSLobAppAssignmentSettings {
 }
 
 function Get-MacOSPkgAppAssignmentSettings {
-    param ([string]$ODataType)
-    Write-IntuneToolkitLog "Get-MacOSPkgAppAssignmentSettings called with ODataType: $ODataType" -component "AssignmentSettingsFunctions" -file "AssignmentSettingsFunctions.ps1"
-    return Get-DefaultAppAssignmentSettings -ODataType $ODataType
+    param (
+        [string]$ODataType
+    )
+
+    <#
+    .NOTES
+    macOS PKG apps do not expose any assignment‐settings schema,
+    so this function always returns $null to produce `"settings": null`
+    in the Graph payload. Example payload:
+
+      {
+        "@odata.type": "#microsoft.graph.mobileAppAssignment",
+        "target": {
+          "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+          "groupId": "01234567-89ab-cdef-0123-456789abcdef"
+        },
+        "intent": "Required",
+        "settings": null
+      }
+    #>
+
+    # Log invocation
+    Write-IntuneToolkitLog "Get-MacOSPkgAppAssignmentSettings called with ODataType: $ODataType" `
+        -component "AssignmentSettingsFunctions" `
+        -file "AssignmentSettingsFunctions.ps1"
+
+    return $null
 }
+
 
 function Get-ManagedAndroidLobAppAssignmentSettings {
     param ([string]$ODataType)

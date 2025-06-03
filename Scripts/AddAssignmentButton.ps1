@@ -192,10 +192,10 @@ $AddAssignmentButton.Add_Click({
                         "#microsoft.graph.androidStoreApp"                 { $settings = Get-AndroidStoreAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.iosLobApp"                       { $settings = Get-IosLobAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.iosStoreApp"                     { $settings = Get-IosStoreAppAssignmentSettings -ODataType $appODataType -Intent $selection.Intent }
-                        "#microsoft.graph.iosVppApp"                       { $settings = Get-IosVppAppAssignmentSettings -ODataType $appODataType }
+                        "#microsoft.graph.iosVppApp"                       { $settings = Get-IosVppAppAssignmentSettings -ODataType $appODataType -Intent $selection.Intent}
                         "#microsoft.graph.macOSDmgApp"                     { $settings = Get-MacOSDmgAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.macOSLobApp"                     { $settings = Get-MacOSLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.macOSPkgApp"                     { $settings = Get-MacOSPkgAppAssignment.Settings -ODataType $appODataType }
+                        "#microsoft.graph.macOSPkgApp"                     { $settings = Get-MacOSPkgAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.managedAndroidLobApp"            { $settings = Get-ManagedAndroidLobAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.managedIOSLobApp"                { $settings = Get-ManagedIosLobAppAssignmentSettings -ODataType $appODataType }
                         "#microsoft.graph.managedMobileLobApp"             { $settings = Get-ManagedMobileLobAppAssignmentSettings -ODataType $appODataType }
