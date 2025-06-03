@@ -109,6 +109,7 @@
                 <DataGridTextColumn Header="Policy Name" Binding="{Binding PolicyName}" Width="*"/>
                 <DataGridTextColumn Header="Description" Binding="{Binding PolicyDescription}" Width="*"/>
                 <DataGridTextColumn Header="Platform" Binding="{Binding Platform}" Width="*" />
+                <DataGridTextColumn Header="Application Type" Binding="{Binding ApplicationType}" Width="*" Visibility="Collapsed"/>
                 <DataGridTextColumn Header="Assignment Type" Binding="{Binding AssignmentType}" Width="*"/>
                 <DataGridTextColumn Header="Group Display Name" Binding="{Binding GroupDisplayname}" Width="*"/>
                 <DataGridTextColumn Header="Filter Display Name" Binding="{Binding FilterDisplayname}" Width="*"/>

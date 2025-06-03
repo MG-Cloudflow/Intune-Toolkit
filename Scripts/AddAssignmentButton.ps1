@@ -40,6 +40,27 @@ $AddAssignmentButton.Add_Click({
 
         Write-IntuneToolkitLog "Selected policies count: $($selectedPolicies.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
+        if ($global:CurrentPolicyType -eq "mobileApps") {
+            # Check for unique @odata.type among selected policies
+            $distinctODataTypes = @()
+            foreach ($pol in $selectedPolicies) {
+                $url = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps('$($pol.PolicyId)')"
+                $appObj = Invoke-MgGraphRequest -Uri $url -Method GET
+                $distinctODataTypes += $appObj.'@odata.type'
+            }
+            $distinctODataTypes = $distinctODataTypes | Sort-Object -Unique
+            if ($distinctODataTypes.Count -gt 1) {
+                [System.Windows.MessageBox]::Show(
+                    "You can only select one application type at a time. Please adjust your selection.",
+                    "Multiple Application Types Selected",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Warning
+                ) | Out-Null
+                Write-IntuneToolkitLog "User attempted to select multiple application types at once." -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                return
+            }
+        }
+
         # --------------------------------------------------------------------------------
         # Retrieve and prepare security groups and assignment filters.
         # --------------------------------------------------------------------------------
@@ -59,11 +80,24 @@ $AddAssignmentButton.Add_Click({
         # Determine whether to include intent selection based on the current policy type.
         $includeIntent = ($global:CurrentPolicyType -eq "mobileApps")
 
+        # Prepare appODataType only for mobileApps
+        $appODataType = $null
+        if ($global:CurrentPolicyType -eq "mobileApps" -and $selectedPolicies.Count -ge 1) {
+            $firstPolicy = $selectedPolicies[0]
+            $url = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps('$($firstPolicy.PolicyId)')"
+            $appObj = Invoke-MgGraphRequest -Uri $url -Method GET
+            $appODataType = $appObj.'@odata.type'
+        }
+
         # --------------------------------------------------------------------------------
         # Display the selection dialog for group and filter.
         # --------------------------------------------------------------------------------
         try {
-            $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent
+            if ($global:CurrentPolicyType -eq "mobileApps") {
+                $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent -appODataType $appODataType
+            } else {
+                $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent
+            }
         }
         catch {
             # If no selection is made, alert the user and log the event.

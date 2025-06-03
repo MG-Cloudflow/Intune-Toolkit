@@ -171,6 +171,8 @@ function Get-PlatformApps {
         
         "#microsoft.graph.macOSLobApp"            { $platform = "macOS" }
         "#microsoft.graph.macOSMicrosoftEdgeApp"  { $platform = "macOS" }
+        "#microsoft.graph.macOSDmgApp"            { $platform = "macOS" }
+        "#microsoft.graph.macOSPkgApp"            { $platform = "macOS" }
         
         "#microsoft.graph.webApp"                 { $platform = "Web" }
         
@@ -180,6 +182,38 @@ function Get-PlatformApps {
     return $platform
 }
 
+#--------------------------------------------------------------------------------
+# Function: Format-ApplicationType
+# Converts an OData application type string (e.g., "#microsoft.graph.androidForWorkApp")
+# into a user-friendly format (e.g., "android For Work App").
+#   - Removes the "#microsoft.graph." prefix.
+#   - Inserts spaces before each capital letter (except the first character).
+#   - Trims leading and trailing spaces.
+# Parameters:
+#   - odataType: The raw OData type string to format.
+# Returns:
+#   - A cleaned, human-readable application type string.
+# Example:
+#   Format-ApplicationType "#microsoft.graph.androidForWorkApp"
+#   # Returns: "android For Work App"
+#--------------------------------------------------------------------------------
+function Format-ApplicationType {
+    param (
+        [string]$odataType
+    )
+    if (-not $odataType) { return "" }
+    # Remove the prefix
+    $clean = $odataType -replace '^#microsoft\.graph\.', ''
+    # Add a space before each capital letter that follows a lowercase letter or digit
+    $result = $clean[0]
+    for ($i = 1; $i -lt $clean.Length; $i++) {
+        if ($clean[$i] -cmatch '[A-Z]' -and $clean[$i-1] -cmatch '[a-z0-9]') {
+            $result += " "
+        }
+        $result += $clean[$i]
+    }
+    return $result
+}
 #--------------------------------------------------------------------------------
 # Function: Get-DevicePlatform
 # Determines the device platform based on a partial match in the OData type.
@@ -268,6 +302,7 @@ function Process-Assignment {
         FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
         InstallIntent     = if ($isMobileApp) { if ($assignment.intent) { $assignment.intent } else { "" } } else { "" }
         Platform          = $platform
+        ApplicationType   = if ($isMobileApp) { if ($policy.'@odata.type') { Format-ApplicationType $policy.'@odata.type' } else { "" } } else { "" }
     }
 }
 
@@ -395,6 +430,7 @@ function Reload-Grid {
                     FilterType        = ""
                     InstallIntent     = ""
                     Platform          = $platform
+                    ApplicationType   = Format-ApplicationType $policy.'@odata.type'
                 }
             }
         } elseif ($type -eq "intents") {
@@ -478,13 +514,16 @@ function Load-PolicyData {
 
     # Determine which columns should be visible based on the policy type.
     $InstallIntentColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Install Intent" }
+    $ApplicationTypeColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Application Type" }
     $FilterDisplayNameColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Filter Display Name" }
     $FilterTypeColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Filter Type" }
 
     if ($policyType -eq "mobileApps") {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Visible
+        $ApplicationTypeColumn.Visibility = [System.Windows.Visibility]::Visible
     } else {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Collapsed
+        $ApplicationTypeColumn.Visibility = [System.Windows.Visibility]::Collapsed
     }
     if ($policyType -eq "deviceShellScripts" -or $policyType -eq "intents" -or $policyType -eq "deviceManagementScripts" -or $policyType -eq "deviceCustomAttributeShellScripts") {
         $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Collapsed

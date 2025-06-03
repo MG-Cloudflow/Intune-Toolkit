@@ -27,7 +27,9 @@ function Show-SelectionDialog {
         [Parameter(Mandatory = $false)]
         [array]$filters,
         [Parameter(Mandatory = $false)]
-        [bool]$includeIntent = $false
+        [bool]$includeIntent = $false,
+        [Parameter(Mandatory = $false)]
+        [string]$appODataType
     )
 
     Write-IntuneToolkitLog "Show-SelectionDialog function called" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
@@ -94,10 +96,21 @@ function Show-SelectionDialog {
     # ---------------------------------------------------------------------------
     # Disable filter fields for specific policy types.
     # ---------------------------------------------------------------------------
-    if ($global:CurrentPolicyType -in @("deviceCustomAttributeShellScripts", "intents", "deviceShellScripts", "deviceManagementScripts")) {
+    if (
+        $global:CurrentPolicyType -in @(
+            "deviceCustomAttributeShellScripts",
+            "intents",
+            "deviceShellScripts",
+            "deviceManagementScripts"
+        ) -or
+        $appODataType -in @(
+            "#microsoft.graph.macOSDmgApp",
+            "#microsoft.graph.macOSPkgApp"
+        )
+    ) {
         $FilterComboBox.IsEnabled = $false
         $FilterTypeComboBox.IsEnabled = $false
-        Write-IntuneToolkitLog "Filter fields disabled due to policy type: $global:CurrentPolicyType" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+        Write-IntuneToolkitLog "Filter fields disabled due to policy type or app type: $global:CurrentPolicyType / $appODataType" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
     } else {
         $FilterComboBox.IsEnabled = $true
         $FilterTypeComboBox.IsEnabled = $true
