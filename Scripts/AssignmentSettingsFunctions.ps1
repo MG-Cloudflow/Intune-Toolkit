@@ -334,6 +334,12 @@ function Get-IosVppAppAssignmentSettings {
         $settings.preventManagedAppBackup  = $false
         $settings.preventAutoAppUpdate     = $false
     }
+    elseif ($Intent -in @("Available","availableWithoutEnrollment")) {
+        $settings.uninstallOnDeviceRemoval = $false
+        $settings.useDeviceLicensing       = $true
+        $settings.preventManagedAppBackup  = $false
+        $settings.preventAutoAppUpdate     = $false
+    }
 
     # Log the constructed settings payload
     Write-IntuneToolkitLog "Settings constructed: $($settings | ConvertTo-Json -Compress)" `
