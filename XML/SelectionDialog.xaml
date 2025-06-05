@@ -100,6 +100,7 @@
         </ComboBox>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Row="12" Margin="5">
+            <Button x:Name="AddExtraAssignmentButton" Content="Add Extra Assignment" Width="180" Style="{StaticResource BaseButtonStyle}"/>
             <Button x:Name="OkButton" Content="OK" Width="80" Style="{StaticResource BaseButtonStyle}"/>
             <Button x:Name="CancelButton" Content="Cancel" Width="80" Style="{StaticResource BaseButtonStyle}"/>
         </StackPanel>

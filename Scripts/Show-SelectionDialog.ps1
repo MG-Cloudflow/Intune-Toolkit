@@ -70,6 +70,7 @@ function Show-SelectionDialog {
     $IntentTextBlock        = $Window.FindName("IntentTextBlock")
     $OkButton               = $Window.FindName("OkButton")
     $CancelButton           = $Window.FindName("CancelButton")
+    $AddExtraAssignmentButton = $Window.FindName("AddExtraAssignmentButton")
 
     # ---------------------------------------------------------------------------
     # Validate that all required UI elements are found.
@@ -81,6 +82,7 @@ function Show-SelectionDialog {
     if (-not $AssignmentTypeComboBox) { Write-Error "AssignmentTypeComboBox not found"; Write-IntuneToolkitLog "AssignmentTypeComboBox not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
     if (-not $OkButton) { Write-Error "OkButton not found"; Write-IntuneToolkitLog "OkButton not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
     if (-not $CancelButton) { Write-Error "CancelButton not found"; Write-IntuneToolkitLog "CancelButton not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
+    if (-not $AddExtraAssignmentButton) { Write-Error "AddExtraAssignmentButton not found"; Write-IntuneToolkitLog "AddExtraAssignmentButton not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
     if ($includeIntent -and (-not $IntentComboBox)) { Write-Error "IntentComboBox not found"; Write-IntuneToolkitLog "IntentComboBox not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
 
     Write-IntuneToolkitLog "UI elements found successfully" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
@@ -197,21 +199,19 @@ function Show-SelectionDialog {
         AssignmentType = $null
         Intent         = $null
     }
+    $script:DialogResult = "OK"
 
     # ---------------------------------------------------------------------------
     # OK button event: capture user selections and enforce filter safety.
     # ---------------------------------------------------------------------------
     $OkButton.Add_Click({
-        # Safety check: if one filter field is filled in while the other is not, prompt the user.
         if ($FilterComboBox.IsEnabled -and (
                 ($FilterComboBox.SelectedItem -and -not $FilterTypeComboBox.SelectedItem) -or
                 (-not $FilterComboBox.SelectedItem -and $FilterTypeComboBox.SelectedItem)
             )) {
             [System.Windows.MessageBox]::Show("If you wish to apply a filter, please select both a filter and a filter type.","Incomplete Filter Selection")
-            return  # Do not close the window
+            return
         }
-
-        # Capture the user's selections.
         $selection.Group = $GroupComboBox.SelectedItem
         $selection.Filter = $FilterComboBox.SelectedItem
         $selection.FilterType = $FilterTypeComboBox.SelectedItem
@@ -219,14 +219,29 @@ function Show-SelectionDialog {
         if ($includeIntent) {
             $selection.Intent = $IntentComboBox.SelectedItem.Content
         }
-        Write-Output "Selected Group: $($selection.Group.Content) - $($selection.Group.Tag)"
-        Write-Output "Selected Filter: $($selection.Filter.Content) - $($selection.Filter.Tag)"
-        Write-Output "Selected Filter Type: $($selection.FilterType.Content)"
-        Write-Output "Selected Assignment Type: $($selection.AssignmentType.Content)"
-        if ($includeIntent) {
-            Write-Output "Selected Intent: $($selection.Intent)"
+        $script:DialogResult = "OK"
+        $Window.Close()
+    })
+
+    # ---------------------------------------------------------------------------
+    # Add Extra Assignment button event: same as OK but sets a different result.
+    # ---------------------------------------------------------------------------
+    $AddExtraAssignmentButton.Add_Click({
+        if ($FilterComboBox.IsEnabled -and (
+                ($FilterComboBox.SelectedItem -and -not $FilterTypeComboBox.SelectedItem) -or
+                (-not $FilterComboBox.SelectedItem -and $FilterTypeComboBox.SelectedItem)
+            )) {
+            [System.Windows.MessageBox]::Show("If you wish to apply a filter, please select both a filter and a filter type.","Incomplete Filter Selection")
+            return
         }
-        Write-IntuneToolkitLog "Selection made - Group: $($selection.Group.Content), Filter: $($selection.Filter.Content), Filter Type: $($selection.FilterType.Content), Assignment Type: $($selection.AssignmentType.Content), Intent: $($selection.Intent)" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+        $selection.Group = $GroupComboBox.SelectedItem
+        $selection.Filter = $FilterComboBox.SelectedItem
+        $selection.FilterType = $FilterTypeComboBox.SelectedItem
+        $selection.AssignmentType = $AssignmentTypeComboBox.SelectedItem
+        if ($includeIntent) {
+            $selection.Intent = $IntentComboBox.SelectedItem.Content
+        }
+        $script:DialogResult = "AddExtra"
         $Window.Close()
     })
 
@@ -235,14 +250,19 @@ function Show-SelectionDialog {
     # ---------------------------------------------------------------------------
     $CancelButton.Add_Click({
         Write-IntuneToolkitLog "Selection dialog canceled by user" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+        $script:DialogResult = "Cancel"
         $Window.Close()
     })
+
     Set-WindowIcon -Window $Window
     $Window.ShowDialog() | Out-Null
 
     # ---------------------------------------------------------------------------
-    # Return the selection if a group was chosen; otherwise, log an error.
+    # Return the selection and dialog result.
     # ---------------------------------------------------------------------------
+    if ($script:DialogResult -eq "Cancel") {
+        return $null
+    }
     if ($selection.Group -and $selection.Group.Tag) {
         Write-IntuneToolkitLog "Returning selected items" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
         return @{
@@ -251,6 +271,7 @@ function Show-SelectionDialog {
             FilterType     = if ($selection.FilterType) { $selection.FilterType.Content } else { $null }
             AssignmentType = if ($selection.AssignmentType) { $selection.AssignmentType.Content } else { "Include" }
             Intent         = $selection.Intent
+            DialogResult   = $script:DialogResult
         }
     } else {
         $errorMessage = "No group selected"

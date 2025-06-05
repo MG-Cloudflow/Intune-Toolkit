@@ -92,20 +92,28 @@ $AddAssignmentButton.Add_Click({
         # --------------------------------------------------------------------------------
         # Display the selection dialog for group and filter.
         # --------------------------------------------------------------------------------
-        try {
-            if ($global:CurrentPolicyType -eq "mobileApps") {
-                $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent -appODataType $appODataType
-            } else {
-                $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent
+        $assignments = @()
+        do {
+            try {
+                if ($global:CurrentPolicyType -eq "mobileApps") {
+                    $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent -appODataType $appODataType
+                } else {
+                    $selection = Show-SelectionDialog -groups $allGroups -filters $allFilters -includeIntent $includeIntent
+                }
             }
-        }
-        catch {
-            # If no selection is made, alert the user and log the event.
-            $message = "No group selected. Please select a group to continue."
-            [System.Windows.MessageBox]::Show($message)
-            Write-IntuneToolkitLog $message -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
-            return
-        }
+            catch {
+                $message = "No group selected. Please select a group to continue."
+                [System.Windows.MessageBox]::Show($message)
+                Write-IntuneToolkitLog $message -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                return
+            }
+
+            # Only add if a group was selected
+            if ($selection -and $selection.Group) {
+                $assignments += $selection
+            }
+        } while ($selection -and $selection.DialogResult -eq "AddExtra")
+
 
         # Validate the selection.
         if (-not $selection -or -not $selection.Group) {
@@ -120,21 +128,23 @@ $AddAssignmentButton.Add_Click({
         #--------------------------------------------------------------------------------
         # Build a summary string listing all assignments that will be Assigned.
         #--------------------------------------------------------------------------------
-
-        $summaryLines = foreach ($pol in $selectedPolicies) {
-            $line = "Policy: $($pol.PolicyName) – Add to [Group: $($selection.Group.Content)]"
-            if ($selection.Filter) {
-                $line += " - [Filter: $($selection.Filter.Content)]"
+        # Remove any assignments where Group is null or empty
+        $assignments = $assignments | Where-Object { $_.Group -and $_.Group.Content -ne "" }
+        $summaryLines = foreach ($sel in $assignments) {
+            foreach ($pol in $selectedPolicies) {
+                $line = "Policy: $($pol.PolicyName) – Add to [Group: $($sel.Group.Content)]"
+                if ($sel.Filter) {
+                    $line += " - [Filter: $($sel.Filter.Content)]"
+                }
+                if ($sel.FilterType) {
+                    $line += " - [Filter Type: $($sel.FilterType)]"
+                }
+                $line
             }
-            if ($selection.FilterType) {
-                $line += " - [Filter Type: $($selection.FilterType)]"
-            }
-            $line
         }
         $summaryText = "The following assignments will be added:`n`n" + ($summaryLines -join "`n")
         $summaryText += "`n`nAre you sure you want to proceed?"
-        
-        # Show the same confirmation dialog (you can rename it later)
+
         $confirm = Show-ConfirmationDialog -SummaryText $summaryText
         if (-not $confirm) {
             Write-IntuneToolkitLog "User canceled add assignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
@@ -147,155 +157,134 @@ $AddAssignmentButton.Add_Click({
         foreach ($selectedPolicy in $selectedPolicies) {
             Write-IntuneToolkitLog "Processing selected policy: $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
-            # --------------------------------------------------------------------------------
             # Fetch the current assignments for the selected policy based on its type.
-            # --------------------------------------------------------------------------------
             if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
                 $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
                 $application = Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET
-                $assignments = $application.assignments
+                $existingAssignments = $application.assignments
             }
             elseif ($global:CurrentPolicyType -eq "configurationPolicies") {
                 $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
-                $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
+                $existingAssignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
             }
             else {
                 $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
-                $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
+                $existingAssignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
             }
 
             Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
-            # Ensure assignments is always an array so we can add new entries without error
-            $assignments = @($assignments)
-            Write-IntuneToolkitLog "Fetched assignments: $($assignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+            $currentAssignments = @($existingAssignments)
+            Write-IntuneToolkitLog "Fetched assignments: $($currentAssignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
-            # --------------------------------------------------------------------------------
-            # Determine the target type and group ID based on the user's selection.
-            # --------------------------------------------------------------------------------
-            switch ($selection.Group.Tag) {
-                "ALL_USERS" {
-                    $targetType = "#microsoft.graph.allLicensedUsersAssignmentTarget"
-                    $groupId = $null
-                }
-                "ALL_DEVICES" {
-                    $targetType = "#microsoft.graph.allDevicesAssignmentTarget"
-                    $groupId = $null
-                }
-                default {
-                    # If the assignment type is "Exclude", use the exclusion group target.
-                    $targetType = if ($selection.AssignmentType -eq "Exclude") {
-                        "#microsoft.graph.exclusionGroupAssignmentTarget"
+            foreach ($sel in $assignments) {
+                # Determine the target type and group ID based on the user's selection.
+                switch ($sel.Group.Tag) {
+                    "ALL_USERS" {
+                        $targetType = "#microsoft.graph.allLicensedUsersAssignmentTarget"
+                        $groupId = $null
                     }
-                    else {
-                        "#microsoft.graph.groupAssignmentTarget"
+                    "ALL_DEVICES" {
+                        $targetType = "#microsoft.graph.allDevicesAssignmentTarget"
+                        $groupId = $null
                     }
-                    $groupId = $selection.Group.Tag
-                }
-            }
-
-            # Build the target object with the proper OData type.
-            $target = @{ '@odata.type' = $targetType }
-            if ($groupId) {
-                $target.groupId = $groupId
-            }
-
-            # --------------------------------------------------------------------------------
-            # Build the new assignment based on the policy type.
-            # --------------------------------------------------------------------------------
-            if ($global:CurrentPolicyType -eq "mobileApps") {
-                # For mobile apps, include the intent and potentially assignment settings.
-                $newAssignment = @{
-                    '@odata.type' = "#microsoft.graph.mobileAppAssignment"
-                    target        = $target
-                    intent        = $selection.Intent
-                }
-
-                # If a filter was selected, add filter properties.
-                if ($selection.Filter) {
-                    $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $selection.Filter.Tag
-                    $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $selection.FilterType
-                }
-
-                # If this is not an exclusion, retrieve the appropriate settings.
-                if ($selection.AssignmentType -ne "Exclude") {
-                    $appODataType = $application.'@odata.type'
-                    switch ($appODataType) {
-                        "#microsoft.graph.androidForWorkApp"             { $settings = Get-AndroidForWorkAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.androidLobApp"                   { $settings = Get-AndroidLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.androidManagedStoreApp"          { $settings = Get-AndroidManagedStoreAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.androidStoreApp"                 { $settings = Get-AndroidStoreAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.iosLobApp"                       { $settings = Get-IosLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.iosStoreApp"                     { $settings = Get-IosStoreAppAssignmentSettings -ODataType $appODataType -Intent $selection.Intent }
-                        "#microsoft.graph.iosVppApp"                       { $settings = Get-IosVppAppAssignmentSettings -ODataType $appODataType -Intent $selection.Intent}
-                        "#microsoft.graph.macOSDmgApp"                     { $settings = Get-MacOSDmgAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.macOSLobApp"                     { $settings = Get-MacOSLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.macOSPkgApp"                     { $settings = Get-MacOSPkgAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.managedAndroidLobApp"            { $settings = Get-ManagedAndroidLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.managedIOSLobApp"                { $settings = Get-ManagedIosLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.managedMobileLobApp"             { $settings = Get-ManagedMobileLobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.microsoftStoreForBusinessApp"    { $settings = Get-MicrosoftStoreForBusinessAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.win32LobApp"                     { $settings = Get-Win32LobAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.windowsAppX"                     { $settings = Get-WindowsAppXAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.windowsMobileMSI"              { $settings = Get-WindowsMobileMSIAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.windowsStoreApp"                 { $settings = Get-WindowsStoreAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.windowsUniversalAppX"            { $settings = Get-WindowsUniversalAppXAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.windowsWebApp"                   { $settings = Get-WindowsWebAppAssignmentSettings -ODataType $appODataType }
-                        "#microsoft.graph.winGetApp"                       { $settings = Get-WinGetAppAssignmentSettings -ODataType $appODataType }
-                        default                                          { $settings = Get-DefaultAppAssignmentSettings -ODataType $appODataType }
+                    default {
+                        $targetType = if ($sel.AssignmentType -eq "Exclude") {
+                            "#microsoft.graph.exclusionGroupAssignmentTarget"
+                        } else {
+                            "#microsoft.graph.groupAssignmentTarget"
+                        }
+                        $groupId = $sel.Group.Tag
                     }
-                    # Include the retrieved settings in the new assignment.
-                    $newAssignment.settings = $settings
                 }
 
-                # Update the assignments list and create the body object for mobile apps.
-                $assignments += $newAssignment
-                $bodyObject = @{ mobileAppAssignments = $assignments }
-            }
-            # For specific script types, assign to deviceManagementScriptAssignments.
-            elseif ($global:CurrentPolicyType -in @("deviceManagementScripts", "deviceShellScripts", "deviceCustomAttributeShellScripts")) {
-                $newAssignment = @{ target = $target }
-                if ($selection.Filter) {
-                    $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $selection.Filter.Tag
-                    $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $selection.FilterType
+                # Build the target object with the proper OData type.
+                $target = @{ '@odata.type' = $targetType }
+                if ($groupId) {
+                    $target.groupId = $groupId
                 }
-                $assignments += $newAssignment
-                $bodyObject = @{ deviceManagementScriptAssignments = $assignments }
-            }
-            # Default case for other policy types.
-            else {
-                $newAssignment = @{ target = $target }
-                if ($selection.Filter) {
-                    $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $selection.Filter.Tag
-                    $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $selection.FilterType
+
+                # Build the new assignment based on the policy type.
+                if ($global:CurrentPolicyType -eq "mobileApps") {
+                    $newAssignment = @{
+                        '@odata.type' = "#microsoft.graph.mobileAppAssignment"
+                        target        = $target
+                        intent        = $sel.Intent
+                    }
+
+                    if ($sel.Filter) {
+                        $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $sel.Filter.Tag
+                        $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $sel.FilterType
+                    }
+
+                    if ($sel.AssignmentType -ne "Exclude") {
+                        $appODataType = $application.'@odata.type'
+                        switch ($appODataType) {
+                            "#microsoft.graph.androidForWorkApp"             { $settings = Get-AndroidForWorkAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.androidLobApp"                 { $settings = Get-AndroidLobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.androidManagedStoreApp"        { $settings = Get-AndroidManagedStoreAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.androidStoreApp"               { $settings = Get-AndroidStoreAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.iosLobApp"                     { $settings = Get-IosLobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.iosStoreApp"                   { $settings = Get-IosStoreAppAssignmentSettings -ODataType $appODataType -Intent $sel.Intent }
+                            "#microsoft.graph.iosVppApp"                     { $settings = Get-IosVppAppAssignmentSettings -ODataType $appODataType -Intent $sel.Intent }
+                            "#microsoft.graph.macOSDmgApp"                   { $settings = Get-MacOSDmgAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.macOSLobApp"                   { $settings = Get-MacOSLobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.macOSPkgApp"                   { $settings = Get-MacOSPkgAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.managedAndroidLobApp"          { $settings = Get-ManagedAndroidLobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.managedIOSLobApp"              { $settings = Get-ManagedIosLobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.managedMobileLobApp"           { $settings = Get-ManagedMobileLobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.microsoftStoreForBusinessApp"  { $settings = Get-MicrosoftStoreForBusinessAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.win32LobApp"                   { $settings = Get-Win32LobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.windowsAppX"                   { $settings = Get-WindowsAppXAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.windowsMobileMSI"              { $settings = Get-WindowsMobileMSIAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.windowsStoreApp"               { $settings = Get-WindowsStoreAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.windowsUniversalAppX"          { $settings = Get-WindowsUniversalAppXAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.windowsWebApp"                 { $settings = Get-WindowsWebAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.winGetApp"                     { $settings = Get-WinGetAppAssignmentSettings -ODataType $appODataType }
+                            default                                          { $settings = Get-DefaultAppAssignmentSettings -ODataType $appODataType }
+                        }
+                        $newAssignment.settings = $settings
+                    }
+
+                    $currentAssignments += $newAssignment
+                    $bodyObject = @{ mobileAppAssignments = $currentAssignments }
                 }
-                $assignments += $newAssignment
-                $bodyObject = @{ assignments = $assignments }
-            }
+                elseif ($global:CurrentPolicyType -in @("deviceManagementScripts", "deviceShellScripts", "deviceCustomAttributeShellScripts")) {
+                    $newAssignment = @{ target = $target }
+                    if ($sel.Filter) {
+                        $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $sel.Filter.Tag
+                        $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $sel.FilterType
+                    }
+                    $currentAssignments += $newAssignment
+                    $bodyObject = @{ deviceManagementScriptAssignments = $currentAssignments }
+                }
+                else {
+                    $newAssignment = @{ target = $target }
+                    if ($sel.Filter) {
+                        $newAssignment.target.deviceAndAppManagementAssignmentFilterId = $sel.Filter.Tag
+                        $newAssignment.target.deviceAndAppManagementAssignmentFilterType = $sel.FilterType
+                    }
+                    $currentAssignments += $newAssignment
+                    $bodyObject = @{ assignments = $currentAssignments }
+                }
 
-            # --------------------------------------------------------------------------------
-            # Convert the updated assignments into a JSON body.
-            # --------------------------------------------------------------------------------
-            $body = $bodyObject | ConvertTo-Json -Depth 10
-            Write-IntuneToolkitLog "Body for update: $body" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                # Convert the updated assignments into a JSON body.
+                $body = $bodyObject | ConvertTo-Json -Depth 10
+                Write-IntuneToolkitLog "Body for update: $body" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
-            # --------------------------------------------------------------------------------
-            # Determine the correct update URL based on the policy type.
-            # --------------------------------------------------------------------------------
-            if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
-                $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
-            }
-            else {
-                $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
-            }
-            Write-IntuneToolkitLog "Updating assignments at: $urlUpdateAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                # Determine the correct update URL based on the policy type.
+                if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
+                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
+                }
+                else {
+                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assign"
+                }
+                Write-IntuneToolkitLog "Updating assignments at: $urlUpdateAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
-            # --------------------------------------------------------------------------------
-            # Send the update request to the Graph API.
-            # --------------------------------------------------------------------------------
-            Invoke-MgGraphRequest -Uri $urlUpdateAssignments -Method POST -Body $body -ContentType "application/json"
-            Write-IntuneToolkitLog "Assignments updated for policy: $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                # Send the update request to the Graph API.
+                Invoke-MgGraphRequest -Uri $urlUpdateAssignments -Method POST -Body $body -ContentType "application/json"
+                Write-IntuneToolkitLog "Assignments updated for policy: $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+            }
         }
-
         # --------------------------------------------------------------------------------
         # Refresh the DataGrid after processing all assignments.
         # --------------------------------------------------------------------------------
