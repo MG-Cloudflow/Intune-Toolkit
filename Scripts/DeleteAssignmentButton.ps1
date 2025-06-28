@@ -65,6 +65,9 @@ $DeleteAssignmentButton.Add_Click({
                 if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
+                } elseif ($global:CurrentPolicyType -eq "configurationPolicies") {
+                    $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
+                    $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
                 } else {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments

@@ -1,4 +1,9 @@
 # Release Notes
+### v0.3.2.1
+- **Bug Fixes & Improvements**
+  - **Delete Assignemnt**
+    - Fixed an issue when deleting security groups from configuration policies it deleted all security groups instead of the selected one because of issue with fetching the existing Assignments.
+
 ### v0.3.2.0
 - **New Features**
   - **Export Comparison Report**
