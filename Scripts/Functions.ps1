@@ -558,8 +558,10 @@ function Load-PolicyData {
     $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
     if ($policyType -eq "configurationPolicies") {
         $SecurityBaselineAnalysisButton.IsEnabled = $true
+        $SettingsReportButton.IsEnabled = $true
     } else {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
+        $SettingsReportButton.IsEnabled = $false
     }
 }
 

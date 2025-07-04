@@ -16,7 +16,7 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.3.2.0"
+$currentVersion = "v0.3.2.1"
 
 #region Log File Setup
 # Define the log file path
@@ -140,6 +140,7 @@ function Show-Window {
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
         $SecurityBaselineAnalysisButton = $Window.FindName("SecurityBaselineAnalysisButton")
+        $SettingsReportButton = $Window.FindName("SettingsReportButton")
         $DeviceCustomAttributeShellScriptsButton = $Window.FindName("DeviceCustomAttributeShellScriptsButton")
         $global:CurrentPolicyType = ""
 
@@ -177,6 +178,7 @@ function Show-Window {
         . .\Scripts\CheckVersion.ps1    # Check for the latest version of the toolkit
         . .\Scripts\SecurityBaselineAnalysisButton.ps1
         . .\Scripts\DeviceCustomAttributeShellScriptsButton.ps1
+        . .\Scripts\SettingsReportButton.ps1
 
         Check-LatestVersion -currentVersion $currentVersion
         Write-IntuneToolkitLog "Successfully imported external scripts"
