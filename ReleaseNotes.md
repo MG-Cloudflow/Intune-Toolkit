@@ -2,7 +2,7 @@
 ### v0.3.2.2
 - **Bug Fixes & Improvements**
   - **Delete Assignemnt**
-    - Preserve assignment type (include/exclude) when deleting
+    - Preserve assignment type (include/exclude) when deleting (Contributed by @blawalt)
       
 ### v0.3.2.1
 - **Bug Fixes & Improvements**
