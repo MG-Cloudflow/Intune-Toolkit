@@ -68,7 +68,7 @@ $DeleteAssignmentButton.Add_Click({
                 } elseif ($global:CurrentPolicyType -eq "configurationPolicies") {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
-                }else {
+                } else {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
                 }
