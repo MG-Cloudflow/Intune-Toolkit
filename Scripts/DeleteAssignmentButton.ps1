@@ -85,7 +85,7 @@ $DeleteAssignmentButton.Add_Click({
                         # Build an assignment object with the necessary properties.
                         $assignmentObject = @{
                             target = @{
-                                '@odata.type' = "#microsoft.graph.groupAssignmentTarget"
+                                '@odata.type' = $assignment.target.'@odata.type'
                                 groupId = $assignment.target.groupId
                                 deviceAndAppManagementAssignmentFilterId = $assignment.target.deviceAndAppManagementAssignmentFilterId
                                 deviceAndAppManagementAssignmentFilterType = $assignment.target.deviceAndAppManagementAssignmentFilterType
