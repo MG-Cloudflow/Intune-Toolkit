@@ -6,7 +6,7 @@
         ResizeMode="NoResize"
         Background="#f3f3f3">
   <Window.Resources>
-    <!-- Base button style -->
+    <!-- Base button style with rounded corners -->
     <Style TargetType="Button" x:Key="BaseButtonStyle">
       <Setter Property="Background" Value="#007ACC"/>
       <Setter Property="Foreground" Value="White"/>
@@ -19,12 +19,173 @@
       <Setter Property="VerticalAlignment" Value="Center"/>
       <Setter Property="FontFamily" Value="Segoe UI"/>
       <Setter Property="FontSize" Value="12"/>
+      <!-- Rounded corner template -->
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="5">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <!-- Hover effect -->
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="#005A9E"/>
+          <Setter Property="BorderBrush" Value="#005A9E"/>
+        </Trigger>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Background" Value="#DDDDDD"/>
+          <Setter Property="Foreground" Value="#888888"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <!-- Sidebar button style -->
+    <Style TargetType="Button" x:Key="SidebarButtonStyle" BasedOn="{StaticResource BaseButtonStyle}">
+      <Setter Property="Width" Value="200"/>
+    </Style>
+    <!-- Base ToggleButton style with rounded corners -->
+    <Style x:Key="BaseToggleButtonStyle" TargetType="ToggleButton">
+      <Setter Property="Background" Value="#007ACC"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="BorderBrush" Value="#007ACC"/>
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Margin" Value="5"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="5">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <!-- Hover effect -->
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="#005A9E"/>
+          <Setter Property="BorderBrush" Value="#005A9E"/>
+        </Trigger>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Background" Value="#DDDDDD"/>
+          <Setter Property="Foreground" Value="#888888"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <!-- Sidebar toggle style -->
+    <Style x:Key="SidebarToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleButtonStyle}">
+      <Setter Property="Width" Value="200"/>
+      <Setter Property="Margin" Value="5"/>
+      <Style.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="Background" Value="#005A9E"/>
+          <Setter Property="BorderBrush" Value="#005A9E"/>
+          <Setter Property="Foreground" Value="White"/>
+        </Trigger>
+      </Style.Triggers>
     </Style>
     <!-- Define textblock styles -->
     <Style TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Segoe UI"/>
       <Setter Property="FontSize" Value="14"/>
       <Setter Property="Margin" Value="5"/>
+    </Style>
+    <!-- Define combobox styles -->
+    <Style TargetType="ComboBox" x:Key="ComboBoxButtonStyle">
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Margin" Value="5"/>
+      <Setter Property="Padding" Value="5"/>
+      <Setter Property="Height" Value="30"/>
+    </Style>
+    <!-- Define textbox styles with rounded corners -->
+    <Style TargetType="TextBox">
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Margin" Value="5"/>
+      <Setter Property="Padding" Value="5"/>
+      <Setter Property="Height" Value="40"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="#007ACC"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <!-- Style for mode toggle buttons -->
+    <Style x:Key="ModeToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Background" Value="LightGray"/>
+      <Setter Property="Foreground" Value="Black"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="BorderBrush" Value="#007ACC"/>
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Width" Value="100"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Style.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="Background" Value="#007ACC"/>
+          <Setter Property="Foreground" Value="White"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <!-- Segmented control templates -->
+    <ControlTemplate x:Key="LeftSegmentToggleTemplate" TargetType="ToggleButton">
+      <Border x:Name="Border" CornerRadius="5,0,0,5" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter TargetName="Border" Property="Background" Value="#007ACC"/>
+          <Setter TargetName="Border" Property="BorderBrush" Value="#007ACC"/>
+          <Setter Property="Foreground" Value="White"/>
+        </Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <ControlTemplate x:Key="RightSegmentToggleTemplate" TargetType="ToggleButton">
+      <Border x:Name="Border" CornerRadius="0,5,5,0" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter TargetName="Border" Property="Background" Value="#007ACC"/>
+          <Setter TargetName="Border" Property="BorderBrush" Value="#007ACC"/>
+          <Setter Property="Foreground" Value="White"/>
+        </Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <!-- Styles for segments -->
+    <Style x:Key="SegmentLeftStyle" TargetType="ToggleButton">
+      <Setter Property="Background" Value="LightGray"/>
+      <Setter Property="Foreground" Value="Black"/>
+      <Setter Property="BorderBrush" Value="#007ACC"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Width" Value="100"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="Template" Value="{StaticResource LeftSegmentToggleTemplate}"/>
+    </Style>
+    <Style x:Key="SegmentRightStyle" TargetType="ToggleButton" BasedOn="{StaticResource SegmentLeftStyle}">
+      <Setter Property="Template" Value="{StaticResource RightSegmentToggleTemplate}"/>
     </Style>
     <!-- Define checkbox styles -->
     <Style TargetType="CheckBox">

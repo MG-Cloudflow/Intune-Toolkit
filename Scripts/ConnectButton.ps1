@@ -65,9 +65,9 @@ $ConnectButton.Add_Click({
         $RefreshButton.IsEnabled = $true
         $SearchFieldComboBox.IsEnabled = $true
         $SearchBox.IsEnabled = $true
-        $SearchButton.IsEnabled = $true
-        $ExportToCSVButton.IsEnabled = $true
-        $ExportToMDButton.IsEnabled = $true
+        #$SearchButton.IsEnabled = $true
+        # Enable unified export button instead of separate MD/CSV buttons
+        $AssignmentReportButton.IsEnabled = $true
         $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
 
         Write-IntuneToolkitLog "UI elements updated successfully" -component "Connect-Button" -file "ConnectButton.ps1"

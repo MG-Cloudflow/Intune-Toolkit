@@ -444,9 +444,20 @@ function Get-MicrosoftStoreForBusinessAppAssignmentSettings {
 }
 
 function Get-Win32LobAppAssignmentSettings {
-    param ([string]$ODataType)
+    param (
+        [string]$ODataType,
+        [string]$notifications = "showAll",
+        [string]$deliveryOptimizationPriority = "notConfigured"
+    )
     Write-IntuneToolkitLog "Get-Win32LobAppAssignmentSettings called with ODataType: $ODataType" -component "AssignmentSettingsFunctions" -file "AssignmentSettingsFunctions.ps1"
-    return Get-DefaultAppAssignmentSettings -ODataType $ODataType
+        $settings = @{
+        '@odata.type' = "$ODataType" + "AssignmentSettings"
+        notifications = $notifications
+        installTimeSettings = $null
+        restartSettings = $null
+        deliveryOptimizationPriority = $deliveryOptimizationPriority
+        }
+    return $settings
 }
 
 function Get-WindowsAppXAssignmentSettings {

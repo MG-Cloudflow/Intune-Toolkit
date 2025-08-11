@@ -47,8 +47,7 @@ $LogoutButton.Add_Click({
         $SearchFieldComboBox.IsEnabled = $false
         $SearchBox.IsEnabled = $false
         $SearchButton.IsEnabled = $false
-        $ExportToCSVButton.IsEnabled = $false
-        $ExportToMDButton.IsEnabled = $false
+        $AssignmentReportButton.IsEnabled = $false
         $RefreshButton.IsEnabled = $false
         $RenameButton.IsEnabled = $false
         $IntentsButton.IsEnabled = $false

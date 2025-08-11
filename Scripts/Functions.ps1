@@ -499,12 +499,13 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $false
     $SearchBox.IsEnabled = $false
     $SearchButton.IsEnabled = $false
-    $ExportToCSVButton.IsEnabled = $false
-    $ExportToMDButton.IsEnabled = $false
+    $AssignmentReportButton.IsEnabled = $false
     $RefreshButton.IsEnabled = $false
     $RenameButton.IsEnabled = $false
     $IntentsButton.IsEnabled = $false
     $DeviceCustomAttributeShellScriptsButton.IsEnabled = $false
+    # Disable add-filter button during load
+    $AddFilterButton.IsEnabled = $false
 
     # Load data synchronously.
     $result = Reload-Grid -type $policyType
@@ -532,6 +533,28 @@ function Load-PolicyData {
         $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Visible
         $FilterTypeColumn.Visibility = [System.Windows.Visibility]::Visible
     }
+
+    # Populate search field combo box with DataGrid column headers and binding paths
+    $SearchFieldComboBox.Items.Clear()
+    foreach ($col in $PolicyDataGrid.Columns) {
+        # Only include visible text columns
+        if ($col -is [System.Windows.Controls.DataGridTextColumn] -and $col.Visibility -eq [System.Windows.Visibility]::Visible) {
+            $header = $col.Header.ToString()
+            # Extract binding path
+            $bindingPath = $null
+            if ($col.Binding -is [System.Windows.Data.Binding]) {
+                $bindingPath = $col.Binding.Path.Path
+            }
+            if ($bindingPath) {
+                $item = New-Object System.Windows.Controls.ComboBoxItem
+                $item.Content = $header
+                $item.Tag     = $bindingPath
+                $SearchFieldComboBox.Items.Add($item) > $null
+            }
+        }
+    }
+    # Reset selection to first field
+    $SearchFieldComboBox.SelectedIndex = 0
     
     # Re-enable UI elements and update status to indicate data has been loaded.
     $StatusText.Text = $loadedMessage
@@ -550,12 +573,13 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $true
     $SearchBox.IsEnabled = $true
     $SearchButton.IsEnabled = $true
-    $ExportToCSVButton.IsEnabled = $true
-    $ExportToMDButton.IsEnabled = $true
+    $AssignmentReportButton.IsEnabled = $true
     $RefreshButton.IsEnabled = $true
     $RenameButton.IsEnabled = $true
     $IntentsButton.IsEnabled = $true
     $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
+    # Enable add-filter button after load
+    $AddFilterButton.IsEnabled = $true
     if ($policyType -eq "configurationPolicies") {
         $SecurityBaselineAnalysisButton.IsEnabled = $true
         $SettingsReportButton.IsEnabled = $true

@@ -233,7 +233,7 @@ $AddAssignmentButton.Add_Click({
                             "#microsoft.graph.managedIOSLobApp"              { $settings = Get-ManagedIosLobAppAssignmentSettings -ODataType $appODataType }
                             "#microsoft.graph.managedMobileLobApp"           { $settings = Get-ManagedMobileLobAppAssignmentSettings -ODataType $appODataType }
                             "#microsoft.graph.microsoftStoreForBusinessApp"  { $settings = Get-MicrosoftStoreForBusinessAppAssignmentSettings -ODataType $appODataType }
-                            "#microsoft.graph.win32LobApp"                   { $settings = Get-Win32LobAppAssignmentSettings -ODataType $appODataType }
+                            "#microsoft.graph.win32LobApp"                   { $settings = Get-Win32LobAppAssignmentSettings -ODataType $appODataType -notifications $sel.Notifications -deliveryOptimizationPriority $sel.DeliveryOptimizationPriority }
                             "#microsoft.graph.windowsAppX"                   { $settings = Get-WindowsAppXAssignmentSettings -ODataType $appODataType }
                             "#microsoft.graph.windowsMobileMSI"              { $settings = Get-WindowsMobileMSIAssignmentSettings -ODataType $appODataType }
                             "#microsoft.graph.windowsStoreApp"               { $settings = Get-WindowsStoreAppAssignmentSettings -ODataType $appODataType }
