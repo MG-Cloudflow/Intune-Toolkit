@@ -212,6 +212,8 @@
                 IsChecked="True"/>
       <CheckBox x:Name="CsvCheckbox"
                 Content="CSV (.csv)"/>
+      <CheckBox x:Name="HtmlCheckbox"
+                Content="HTML (.html)"/>
     </StackPanel>
 
     <StackPanel Grid.Row="2"

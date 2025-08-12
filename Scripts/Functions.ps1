@@ -748,6 +748,7 @@ function Show-ExportOptionsDialog {
     # Grab the controls
     $MdChk  = $Window.FindName("MdCheckbox")
     $CsvChk = $Window.FindName("CsvCheckbox")
+    $HtmlChk = $Window.FindName("HtmlCheckbox")  # new checkbox
     $OkBtn  = $Window.FindName("OkButton")
     $Cancel = $Window.FindName("CancelButton")
 
@@ -769,8 +770,9 @@ function Show-ExportOptionsDialog {
     # Now after it closes, read DialogResult + checkboxes
     if ($Window.DialogResult -eq $true) {
         $sel = @()
-        if ($MdChk.IsChecked)  { $sel += "Markdown" }
-        if ($CsvChk.IsChecked) { $sel += "CSV" }
+        if ($MdChk.IsChecked)   { $sel += "Markdown" }
+        if ($CsvChk.IsChecked)  { $sel += "CSV" }
+        if ($HtmlChk -and $HtmlChk.IsChecked) { $sel += "HTML" }
         return $sel
     } else {
         return $null
