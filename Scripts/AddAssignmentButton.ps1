@@ -157,33 +157,52 @@ $AddAssignmentButton.Add_Click({
         foreach ($selectedPolicy in $selectedPolicies) {
             Write-IntuneToolkitLog "Processing selected policy: $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
-            # Fetch the current assignments for the selected policy based on its type.
-            if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
+            # Fetch current assignments unless Autopilot (not required for Autopilot profile assignment POST)
+            if ($global:CurrentPolicyType -eq "windowsAutopilotDeploymentProfiles") {
+                Write-IntuneToolkitLog "Skipping fetch of existing assignments for Autopilot profile $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                $currentAssignments = @()  # Not used; single POST per new assignment
+            }
+            elseif ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
                 $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
                 $application = Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET
                 $existingAssignments = $application.assignments
+                $currentAssignments = @($existingAssignments)
+                Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                Write-IntuneToolkitLog "Fetched assignments: $($currentAssignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
             }
             elseif ($global:CurrentPolicyType -eq "configurationPolicies") {
                 $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
                 $existingAssignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
+                $currentAssignments = @($existingAssignments)
+                Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                Write-IntuneToolkitLog "Fetched assignments: $($currentAssignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
             }
             else {
                 $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
                 $existingAssignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
+                $currentAssignments = @($existingAssignments)
+                Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                Write-IntuneToolkitLog "Fetched assignments: $($currentAssignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
             }
-
-            Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
-            $currentAssignments = @($existingAssignments)
-            Write-IntuneToolkitLog "Fetched assignments: $($currentAssignments.Count)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
 
             foreach ($sel in $assignments) {
                 # Determine the target type and group ID based on the user's selection.
                 switch ($sel.Group.Tag) {
                     "ALL_USERS" {
+                        if ($global:CurrentPolicyType -eq "windowsAutopilotDeploymentProfiles") {
+                            [System.Windows.MessageBox]::Show("'All Users' not supported for Autopilot profile assignments. Skipping.") | Out-Null
+                            Write-IntuneToolkitLog "Skipped unsupported All Users assignment for Autopilot profile" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                            continue
+                        }
                         $targetType = "#microsoft.graph.allLicensedUsersAssignmentTarget"
                         $groupId = $null
                     }
                     "ALL_DEVICES" {
+                        if ($global:CurrentPolicyType -eq "windowsAutopilotDeploymentProfiles") {
+                            [System.Windows.MessageBox]::Show("'All Devices' not supported for Autopilot profile assignments. Skipping.") | Out-Null
+                            Write-IntuneToolkitLog "Skipped unsupported All Devices assignment for Autopilot profile" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                            continue
+                        }
                         $targetType = "#microsoft.graph.allDevicesAssignmentTarget"
                         $groupId = $null
                     }
@@ -197,11 +216,23 @@ $AddAssignmentButton.Add_Click({
                     }
                 }
 
+                # Autopilot profiles: direct POST to /assignments per new target, no batching, no /assign endpoint
+                if ($global:CurrentPolicyType -eq "windowsAutopilotDeploymentProfiles") {
+                    $target = @{ '@odata.type' = $targetType }
+                    if ($groupId) { $target.groupId = $groupId }
+                    $bodyObject = @{ target = $target }
+                    $body = $bodyObject | ConvertTo-Json -Depth 6
+                    $urlUpdateAssignments = "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeploymentProfiles/$($selectedPolicy.PolicyId)/assignments"
+                    Write-IntuneToolkitLog "Adding Autopilot assignment at: $urlUpdateAssignments with body: $body" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                    Invoke-MgGraphRequest -Uri $urlUpdateAssignments -Method POST -Body $body -ContentType "application/json"
+                    Write-IntuneToolkitLog "Autopilot assignment added for profile $($selectedPolicy.PolicyId)" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
+                    continue
+                }
+
+                # Existing logic for other policy types
                 # Build the target object with the proper OData type.
                 $target = @{ '@odata.type' = $targetType }
-                if ($groupId) {
-                    $target.groupId = $groupId
-                }
+                if ($groupId) { $target.groupId = $groupId }
 
                 # Build the new assignment based on the policy type.
                 if ($global:CurrentPolicyType -eq "mobileApps") {

@@ -143,7 +143,8 @@ function Show-SelectionDialog {
             "deviceCustomAttributeShellScripts",
             "intents",
             "deviceShellScripts",
-            "deviceManagementScripts"
+            "deviceManagementScripts",
+            "windowsAutopilotDeploymentProfiles"  # Autopilot: filters not supported
         ) -or
         $appODataType -in @(
             "#microsoft.graph.macOSDmgApp",

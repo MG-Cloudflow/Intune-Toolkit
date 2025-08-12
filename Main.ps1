@@ -128,6 +128,7 @@ function Show-Window {
         $ConfigurationPoliciesButton = $Window.FindName("ConfigurationPoliciesButton")
         $DeviceConfigurationButton = $Window.FindName("DeviceConfigurationButton")
         $ComplianceButton = $Window.FindName("ComplianceButton")
+        $AutopilotProfilesButton = $Window.FindName("AutopilotProfilesButton")
         $AdminTemplatesButton = $Window.FindName("AdminTemplatesButton")
         $IntentsButton = $Window.FindName("IntentsButton")
         $ApplicationsButton = $Window.FindName("ApplicationsButton")
@@ -152,6 +153,7 @@ function Show-Window {
             $ConfigurationPoliciesButton,
             $DeviceConfigurationButton,
             $ComplianceButton,
+            $AutopilotProfilesButton,
             $AdminTemplatesButton,
             $IntentsButton,
             $ApplicationsButton,
@@ -224,6 +226,7 @@ function Show-Window {
         . .\Scripts\ConfigurationPoliciesButton.ps1
         . .\Scripts\DeviceConfigurationButton.ps1
         . .\Scripts\ComplianceButton.ps1
+        . .\Scripts\AutopilotProfilesButton.ps1
         . .\Scripts\AdminTemplatesButton.ps1
         . .\Scripts\ApplicationsButton.ps1
         . .\Scripts\DeleteAssignmentButton.ps1

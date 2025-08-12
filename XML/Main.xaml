@@ -208,17 +208,19 @@
                 <Button x:Name="ConnectButton" Content="Connect to Graph" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>
                 <Button x:Name="ConnectEnterpriseAppButton" Content="Connect to Graph App" Style="{StaticResource SidebarButtonStyle}" IsEnabled="True"/>
                 <Button x:Name="LogoutButton" Content="Logout" Style="{StaticResource SidebarButtonStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="ConfigurationPoliciesButton" Content="Configuration Policies" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False" Margin="5,20,5,5"/>
-                <ToggleButton x:Name="DeviceConfigurationButton" Content="Device Configuration" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="ComplianceButton" Content="Compliance" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="AdminTemplatesButton" Content="Administrative Templates" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="IntentsButton" Content="Endpoint Security" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="ApplicationsButton" Content="Applications" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <!-- Alphabetically ordered toggle buttons by Content -->
+                <ToggleButton x:Name="AdminTemplatesButton" Content="Administrative Templates" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False" Margin="5,20,5,5"/>
                 <ToggleButton x:Name="AppConfigButton" Content="App configuration policies" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="ApplicationsButton" Content="Applications" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="AutopilotProfilesButton" Content="Autopilot Profiles" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="ComplianceButton" Content="Compliance" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="DeviceConfigurationButton" Content="Device Configuration" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="IntentsButton" Content="Endpoint Security" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="DeviceCustomAttributeShellScriptsButton" Content="macOS Custom Attributes" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="MacosScriptsButton" Content="macOS Scripts" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
                 <ToggleButton x:Name="PlatformScriptsButton" Content="Platform Scripts" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
                 <ToggleButton x:Name="RemediationScriptsButton" Content="Remediation Scripts" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="MacosScriptsButton" Content="macOS Scripts" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
-                <ToggleButton x:Name="DeviceCustomAttributeShellScriptsButton" Content="macOS Custom Attributes" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
+                <ToggleButton x:Name="ConfigurationPoliciesButton" Content="Settings Catalog" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False"/>
             </StackPanel>
         </ScrollViewer>
         <Grid Grid.Row="0" Grid.Column="1" Margin="10">

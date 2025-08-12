@@ -185,34 +185,62 @@ function Get-PlatformApps {
 #--------------------------------------------------------------------------------
 # Function: Format-ApplicationType
 # Converts an OData application type string (e.g., "#microsoft.graph.androidForWorkApp")
-# into a user-friendly format (e.g., "android For Work App").
-#   - Removes the "#microsoft.graph." prefix.
-#   - Inserts spaces before each capital letter (except the first character).
-#   - Trims leading and trailing spaces.
-# Parameters:
-#   - odataType: The raw OData type string to format.
-# Returns:
-#   - A cleaned, human-readable application type string.
-# Example:
-#   Format-ApplicationType "#microsoft.graph.androidForWorkApp"
-#   # Returns: "android For Work App"
+# into a user-friendly format (e.g., "Android For Work App").
+# Updated: Added explicit mapping for known OData types (handles macOS/iOS acronyms,
+# Win32, MSI, VPP, WinGet, etc.) and a smarter fallback splitter.
 #--------------------------------------------------------------------------------
 function Format-ApplicationType {
     param (
         [string]$odataType
     )
     if (-not $odataType) { return "" }
-    # Remove the prefix
+
     $clean = $odataType -replace '^#microsoft\.graph\.', ''
-    # Add a space before each capital letter that follows a lowercase letter or digit
-    $result = $clean[0]
-    for ($i = 1; $i -lt $clean.Length; $i++) {
-        if ($clean[$i] -cmatch '[A-Z]' -and $clean[$i-1] -cmatch '[a-z0-9]') {
-            $result += " "
-        }
-        $result += $clean[$i]
+
+    $map = @{
+        'androidForWorkApp'              = 'Android For Work App'
+        'androidLobApp'                  = 'Android Lob App'
+        'androidManagedStoreApp'         = 'Android Managed Store App'
+        'androidStoreApp'                = 'Android Store App'
+        'iosLobApp'                      = 'iOS Lob App'
+        'iosStoreApp'                    = 'iOS Store App'
+        'iosVppApp'                      = 'iOS VPP App'
+        'macOSDmgApp'                    = 'macOS Dmg App'
+        'macOSLobApp'                    = 'macOS Lob App'
+        'macOSPkgApp'                    = 'macOS Pkg App'
+        'managedAndroidLobApp'           = 'Managed Android Lob App'
+        'managedIOSLobApp'               = 'Managed iOS Lob App'
+        'managedMobileLobApp'            = 'Managed Mobile Lob App'
+        'microsoftStoreForBusinessApp'   = 'Microsoft Store For Business App'
+        'win32LobApp'                    = 'Win32 Lob App'
+        'windowsAppX'                    = 'Windows App X'
+        'windowsMobileMSI'               = 'Windows Mobile MSI'
+        'windowsStoreApp'                = 'Windows Store App'
+        'windowsUniversalAppX'           = 'Windows Universal App X'
+        'windowsWebApp'                  = 'Windows Web App'
+        'winGetApp'                      = 'WinGet App'
     }
-    return $result
+
+    if ($map.ContainsKey($clean)) { return $map[$clean] }
+
+    # Fallback: split before capitals or digits, then fix common tokens
+    $raw = ($clean -split '(?<=.)(?=[A-Z0-9])') -join ' '
+
+    $normalized = $raw -replace '\bMac Os\b', 'macOS' `
+                           -replace '\bIos\b', 'iOS' `
+                           -replace '\bMsi\b', 'MSI' `
+                           -replace '\bVpp\b', 'VPP' `
+                           -replace '\bWin 32\b', 'Win32' `
+                           -replace '\bWin Get\b', 'WinGet'
+
+    $tokens = $normalized -split ' '
+    $processed = foreach ($t in $tokens) {
+        if ($t -in @('macOS','iOS','Win32','MSI','VPP','WinGet')) { $t }
+        elseif ([string]::IsNullOrWhiteSpace($t)) { continue }
+        else { $t.Substring(0,1).ToUpper() + $t.Substring(1) }
+    }
+    $final = ($processed -join ' ')
+    return $final
 }
 #--------------------------------------------------------------------------------
 # Function: Get-DevicePlatform
@@ -367,6 +395,9 @@ function Reload-Grid {
             $platform = "macOS"
         } elseif ($type -eq "intents") {
             $platform = "Windows"
+        } elseif ($type -eq "windowsAutopilotDeploymentProfiles") {
+            # OData type contains 'windows'; treat as Windows
+            $platform = "Windows"
         } else {
             $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
         }
@@ -381,7 +412,8 @@ function Reload-Grid {
             $type -eq "managedAppPolicies" -or 
             $type -eq "mobileAppConfigurations" -or 
             $type -eq "deviceShellScripts" -or 
-            $type -eq "deviceCustomAttributeShellScripts") {
+            $type -eq "deviceCustomAttributeShellScripts" -or 
+            $type -eq "windowsAutopilotDeploymentProfiles") {
 
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
@@ -486,6 +518,7 @@ function Load-PolicyData {
     $ConfigurationPoliciesButton.IsEnabled = $false
     $DeviceConfigurationButton.IsEnabled = $false
     $ComplianceButton.IsEnabled = $false
+    $AutopilotProfilesButton.IsEnabled = $false
     $AdminTemplatesButton.IsEnabled = $false
     $ApplicationsButton.IsEnabled = $false
     $AppConfigButton.IsEnabled = $false
@@ -526,7 +559,7 @@ function Load-PolicyData {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Collapsed
         $ApplicationTypeColumn.Visibility = [System.Windows.Visibility]::Collapsed
     }
-    if ($policyType -eq "deviceShellScripts" -or $policyType -eq "intents" -or $policyType -eq "deviceManagementScripts" -or $policyType -eq "deviceCustomAttributeShellScripts") {
+    if ($policyType -eq "deviceShellScripts" -or $policyType -eq "intents" -or $policyType -eq "deviceManagementScripts" -or $policyType -eq "deviceCustomAttributeShellScripts" -or $policyType -eq "windowsAutopilotDeploymentProfiles") {
         $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Collapsed
         $FilterTypeColumn.Visibility = [System.Windows.Visibility]::Collapsed
     } else {
@@ -561,6 +594,7 @@ function Load-PolicyData {
     $ConfigurationPoliciesButton.IsEnabled = $true
     $DeviceConfigurationButton.IsEnabled = $true
     $ComplianceButton.IsEnabled = $true
+    $AutopilotProfilesButton.IsEnabled = $true
     $AdminTemplatesButton.IsEnabled = $true
     $ApplicationsButton.IsEnabled = $true
     $AppConfigButton.IsEnabled = $true
