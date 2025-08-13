@@ -1,4 +1,57 @@
 # Release Notes
+### v1.0.0
+- **New Features**
+  - **Windows Autopilot Deployment Profiles**
+    - Added full support to load, view and manage Windows Autopilot deployment profiles (`windowsAutopilotDeploymentProfiles`).
+    - Add & delete assignments with Autopilot‑specific Graph endpoints (direct POST /assignments & DELETE per assignment id).
+    - Safety logic prevents unsupported "All Users" / "All Devices" targets for Autopilot profiles.
+  - **Unified Assignment Report Export**
+    - Replaced separate export buttons with a single `AssignmentReport` action offering export to **HTML, Markdown, or CSV**.
+    - New rich, responsive HTML report: platform grouping, badges for assignment / filter / install intent, copyable Group IDs, expandable long descriptions, filter & intent metadata.
+    - Embedded branding (icon / logo) and tenant & generation timestamp.
+  - **Settings Report**
+    - Generate a dedicated Configuration Policy Settings report (Markdown and/or CSV) showing each unique setting, description, configured value(s) and in which policies it appears.
+    - Highlights “shared” settings across multiple selected policies in an overview section.
+  - **Advanced Multi‑Clause Search**
+    - Added dynamic AND / OR filter clauses (Add Filter button) allowing compound searches across multiple fields without reloading data.
+  - **Multiple Assignment Additions in One Flow**
+    - Add several groups (with optional filters & intents) sequentially before committing changes, with a consolidated confirmation summary.
+  - **Win32 App Assignment Options**
+    - When assigning Win32 (Win32 LOB) apps you can now set per‑assignment: 
+      - Notification visibility (notifications property) e.g. showAll / hideAll (defaults to showAll).
+      - Delivery Optimization Priority (deliveryOptimizationPriority) to control content download behavior (e.g. foreground / background / notConfigured).
+    - These values are passed into the Win32 assignment settings payload (`Get-Win32LobAppAssignmentSettings`).
+  - **HTML Assignment Report Enhancements**
+    - Intelligent truncation & toggle for long descriptions.
+    - Distinct styling for assignment types (include / exclude, required / available / uninstall) and install intents.
+  - **Action / Report Mode Toggles**
+    - New UI toggle switches to quickly swap between operational actions and reporting features, showing only the relevant bottom buttons.
+
+- **Improvements**
+  - **Assignment Handling**
+    - Refactored add/delete logic to handle Autopilot differences (no pre‑fetch on add, direct per‑assignment delete) reducing unnecessary Graph calls.
+    - Preserves existing assignments while appending multiple new ones across selected policies.
+  - **Search UX**
+    - Mutually exclusive sidebar buttons to prevent mixed context selection.
+    - Added removal control for individual dynamic filter clauses.
+  - **Logging & Diagnostics**
+    - Expanded structured logging around settings flattening, export generation, search clause evaluation, and assignment payload bodies.
+  - **UI & Branding**
+    - Added PNG/ICO assets; window icon & exports leverage embedded branding.
+    - Cleaner segregation of “Actions” vs “Reports” improving discoverability.
+  - **Code Organization**
+    - Centralized export logic (Markdown/CSV/HTML) into a single handler.
+    - Enhanced assignment settings resolution per app type with dedicated helper functions.
+
+- **Bug Fixes & Reliability**
+  - Correct handling of include / exclude group types retained through add & delete flows (building on v0.3.2.2 fix) across new report formats.
+  - Improved resilience when policies lack assignments (HTML export marks them as Unassigned instead of failing).
+  - Safer null / empty checks for search & filter clauses preventing runtime errors on incomplete input.
+
+- **Notes**
+  - This marks the first major (1.x) release; focus was on expanding reporting depth, Autopilot coverage, and operational efficiency while maintaining existing feature parity.
+  - Update your automation / documentation to reference the unified Assignment Report and new Settings Report capabilities.
+
 ### v0.3.2.2
 - **Bug Fixes & Improvements**
   - **Delete Assignemnt**
