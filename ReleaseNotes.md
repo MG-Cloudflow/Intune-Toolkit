@@ -10,8 +10,15 @@
     - New rich, responsive HTML report: platform grouping, badges for assignment / filter / install intent, copyable Group IDs, expandable long descriptions, filter & intent metadata.
     - Embedded branding (icon / logo) and tenant & generation timestamp.
   - **Settings Report**
-    - Generate a dedicated Configuration Policy Settings report (Markdown and/or CSV) showing each unique setting, description, configured value(s) and in which policies it appears.
-    - Highlights “shared” settings across multiple selected policies in an overview section.
+    - Generate a dedicated Configuration Policy Settings report (Markdown / CSV / NEW: Interactive HTML) showing each unique setting, description, configured value(s) and in which policies it appears.
+    - Interactive HTML export (parity with Baseline Comparison report):
+      - Live search (client-side) + dynamic summary card counts & percentages.
+      - Tag & platform filtering (AND tag logic, clickable tag badges to quick-focus a single tag).
+      - Duplicates toggle (All / Duplicates / Unique) with yellow Duplicate and green Unique badges.
+      - Column show / hide panel, drag-resizable sticky headers, scroll-to-top button.
+      - Expand / collapse long descriptions (3-line clamp).
+      - Data attributes (data-tags / data-platform / data-dup) enable future extensions.
+    - Highlights duplicate settings (formerly labeled “shared”) across multiple selected policies and calculates duplicate vs unique percentages.
   - **Advanced Multi‑Clause Search**
     - Added dynamic AND / OR filter clauses (Add Filter button) allowing compound searches across multiple fields without reloading data.
   - **Multiple Assignment Additions in One Flow**
@@ -48,6 +55,10 @@
   - 3‑line description clamp with per-row More/Less; ordered & color‑coded result badges (Matches / Differs / Missing / Extra).
   - Tag & platform filtering (clickable blue tag badges, AND tag filter drawer, Windows10→Windows normalization + distribution counts/percentages).
   - Live search updates visible stats; dedup actual values; Tags column moved last; Technologies hidden; layout tightened (nowrap badges, wrapped tags) with data attributes enabling future extensions.
+  - **(NEW) Interactive Security Baseline HTML Report** (if not previously highlighted above)
+    - Same UX layer as Settings HTML report (shared filtering/search, column visibility, resizable headers, tag & platform filters, scroll-to-top, description clamp).
+    - Comparison-focused badges (Match / Differs / Missing / Extra) + separate Extra Settings table.
+    - Dynamic counts for baseline vs merged settings with live recalculation after search/filter changes.
 
 - **Bug Fixes & Reliability**
   - Correct handling of include / exclude group types retained through add & delete flows (building on v0.3.2.2 fix) across new report formats.
