@@ -882,46 +882,69 @@ function Build-CatalogDictionary {
     # Initialize an empty hashtable to store catalog items with lowercase keys.
     $dict = @{}
 
-    # Local helper function to recursively add catalog entries (and their children) to the dictionary.
+    # Local helper function to normalize and add catalog entries (and their children) to the dictionary, capturing extra metadata.
     function Add-EntryToDict($entry) {
         if ($null -eq $entry) { return }
+        
+        # Helper to wrap raw entry with supplemental fields we want to expose in reports
+        function New-CatalogWrapperObject {
+            param([object]$src)
+            # Avoid double-wrapping
+            if ($src.PSObject.TypeNames -contains 'IntuneToolkit.CatalogEntry') { return $src }
+            $platform      = $null
+            $technologies  = $null
+            $keywordsJoined = $null
+            if ($src.applicability) {
+                if ($src.applicability.PSObject.Properties['platform'])     { $platform     = $src.applicability.platform }
+                if ($src.applicability.PSObject.Properties['technologies']) { $technologies = $src.applicability.technologies }
+            }
+            if ($src.PSObject.Properties['keywords'] -and $src.keywords) {
+                try { $keywordsJoined = ($src.keywords -join ', ') } catch { $keywordsJoined = [string]$src.keywords }
+            }
+            $wrapper = [PSCustomObject]@{
+                Raw          = $src
+                Id           = $(if($src.PSObject.Properties['id']){$src.id}else{$null})
+                ItemId       = $(if($src.PSObject.Properties['itemId']){$src.itemId}else{$null})
+                Name         = $(if($src.PSObject.Properties['name']){$src.name}else{$null})
+                DisplayName  = $(if($src.PSObject.Properties['displayName']){$src.displayName}else{$null})
+                Description  = $(if($src.PSObject.Properties['description']){$src.description}else{$null})
+                Platform     = $platform
+                Technologies = $technologies
+                Keywords     = $keywordsJoined
+            }
+            $wrapper.PSObject.TypeNames.Insert(0,'IntuneToolkit.CatalogEntry')
+            return $wrapper
+        }
+        
+        function Add-Or-Set([string]$key,[object]$value){
+            $lk = $key.ToLower()
+            if (-not $dict.ContainsKey($lk)) { $dict[$lk] = (New-CatalogWrapperObject -src $value) }
+        }
         # If the entry has options, iterate through each option to add them.
         if ($entry.options) {
             foreach ($option in $entry.options) {
                 if ($option.itemId) {
-                    $key = $option.itemId.ToLower()
-                    if (-not $dict.ContainsKey($key)) {
-                        $dict[$key] = $option
-                    }
+                    Add-Or-Set -key $option.itemId -value $option
                 }
                 if ($option.name) {
-                    $key = $option.name.ToLower()
-                    if (-not $dict.ContainsKey($key)) {
-                        $dict[$key] = $option
-                    }
+                    Add-Or-Set -key $option.name -value $option
                 }
             }
         }
         # Check for properties "id" and add to dictionary.
         if ($entry.PSObject.Properties["id"]) {
             $id = $entry.id.ToString().ToLower()
-            if (-not $dict.ContainsKey($id)) {
-                $dict[$id] = $entry
-            }
+            Add-Or-Set -key $id -value $entry
         }
         # Check for "itemId" property and add to dictionary.
         if ($entry.PSObject.Properties["itemId"]) {
             $itemId = $entry.itemId.ToString().ToLower()
-            if (-not $dict.ContainsKey($itemId)) {
-                $dict[$itemId] = $entry
-            }
+            Add-Or-Set -key $itemId -value $entry
         }
         # Check for "name" property and add to dictionary.
         if ($entry.PSObject.Properties["name"]) {
             $name = $entry.name.ToString().ToLower()
-            if (-not $dict.ContainsKey($name)) {
-                $dict[$name] = $entry
-            }
+            Add-Or-Set -key $name -value $entry
         }
         # Recursively add any child entries if present.
         if ($entry.Children) {

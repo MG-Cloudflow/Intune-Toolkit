@@ -42,6 +42,12 @@
   - **Code Organization**
     - Centralized export logic (Markdown/CSV/HTML) into a single handler.
     - Enhanced assignment settings resolution per app type with dedicated helper functions.
+  - **Security Baseline Comparison HTML Report**
+  - New interactive HTML export (Bootstrap) alongside CSV/Markdown for baseline vs merged policy settings.
+  - Column show/hide, drag resize, sticky headers & scroll-to-top.
+  - 3‑line description clamp with per-row More/Less; ordered & color‑coded result badges (Matches / Differs / Missing / Extra).
+  - Tag & platform filtering (clickable blue tag badges, AND tag filter drawer, Windows10→Windows normalization + distribution counts/percentages).
+  - Live search updates visible stats; dedup actual values; Tags column moved last; Technologies hidden; layout tightened (nowrap badges, wrapped tags) with data attributes enabling future extensions.
 
 - **Bug Fixes & Reliability**
   - Correct handling of include / exclude group types retained through add & delete flows (building on v0.3.2.2 fix) across new report formats.
