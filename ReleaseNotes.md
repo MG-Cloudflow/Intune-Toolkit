@@ -33,6 +33,12 @@
     - Distinct styling for assignment types (include / exclude, required / available / uninstall) and install intents.
   - **Action / Report Mode Toggles**
     - New UI toggle switches to quickly swap between operational actions and reporting features, showing only the relevant bottom buttons.
+  - **Security Baseline Comparison HTML Report**
+    - New interactive HTML export (Bootstrap) alongside CSV/Markdown for baseline vs merged policy settings.
+    - Column show/hide, drag resize, sticky headers & scroll-to-top.
+    - 3‑line description clamp with per-row More/Less; ordered & color‑coded result badges (Matches / Differs / Missing / Extra).
+    - Tag & platform filtering (clickable blue tag badges, AND tag filter drawer, Windows10→Windows normalization + distribution counts/percentages).
+    - Live search updates visible stats; dedup actual values; Tags column moved last; Technologies hidden; layout tightened (nowrap badges, wrapped tags) with data attributes enabling future extensions.
 
 - **Improvements**
   - **Assignment Handling**
@@ -49,16 +55,6 @@
   - **Code Organization**
     - Centralized export logic (Markdown/CSV/HTML) into a single handler.
     - Enhanced assignment settings resolution per app type with dedicated helper functions.
-  - **Security Baseline Comparison HTML Report**
-  - New interactive HTML export (Bootstrap) alongside CSV/Markdown for baseline vs merged policy settings.
-  - Column show/hide, drag resize, sticky headers & scroll-to-top.
-  - 3‑line description clamp with per-row More/Less; ordered & color‑coded result badges (Matches / Differs / Missing / Extra).
-  - Tag & platform filtering (clickable blue tag badges, AND tag filter drawer, Windows10→Windows normalization + distribution counts/percentages).
-  - Live search updates visible stats; dedup actual values; Tags column moved last; Technologies hidden; layout tightened (nowrap badges, wrapped tags) with data attributes enabling future extensions.
-  - **(NEW) Interactive Security Baseline HTML Report** (if not previously highlighted above)
-    - Same UX layer as Settings HTML report (shared filtering/search, column visibility, resizable headers, tag & platform filters, scroll-to-top, description clamp).
-    - Comparison-focused badges (Match / Differs / Missing / Extra) + separate Extra Settings table.
-    - Dynamic counts for baseline vs merged settings with live recalculation after search/filter changes.
 
 - **Bug Fixes & Reliability**
   - Correct handling of include / exclude group types retained through add & delete flows (building on v0.3.2.2 fix) across new report formats.
