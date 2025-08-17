@@ -458,13 +458,9 @@ $intentOptionLines = if ($CurrentPolicyType -eq 'mobileApps') {
 $advancedFiltersHtml = @"
 <div class='advanced-filters collapse mt-2' id='advFilters'>
   <div class='card card-body p-3 shadow-sm'>
-    <div class='row g-3'>
-      <div class='col-12 col-lg-3'>
+    <div class='row g-3'>      <div class='col-12 col-lg-3'>
         <div class='small text-muted fw-semibold mb-1'>Assignment Types</div>
         <div class='d-flex flex-column gap-1'>
-          <div class='form-check form-switch small'><input class='form-check-input flt-assignment' type='checkbox' value='required' id='ass-required'><label class='form-check-label' for='ass-required'>Required</label></div>
-          <div class='form-check form-switch small'><input class='form-check-input flt-assignment' type='checkbox' value='available' id='ass-available'><label class='form-check-label' for='ass-available'>Available</label></div>
-          <div class='form-check form-switch small'><input class='form-check-input flt-assignment' type='checkbox' value='uninstall' id='ass-uninstall'><label class='form-check-label' for='ass-uninstall'>Uninstall</label></div>
           <div class='form-check form-switch small'><input class='form-check-input flt-assignment' type='checkbox' value='include' id='ass-include'><label class='form-check-label' for='ass-include'>Include</label></div>
           <div class='form-check form-switch small'><input class='form-check-input flt-assignment' type='checkbox' value='exclude' id='ass-exclude'><label class='form-check-label' for='ass-exclude'>Exclude</label></div>
         </div>
@@ -607,10 +603,17 @@ $searchScript
         # Replace advancedFiltersHtml placeholder
         $html = $html -replace '\$advancedFiltersHtml', [System.Text.RegularExpressions.Regex]::Escape($advancedFiltersHtml) -replace [System.Text.RegularExpressions.Regex]::Escape($advancedFiltersHtml), $advancedFiltersHtml
         # Replace searchScript placeholder
-        $html = $html -replace '\$searchScript', [System.Text.RegularExpressions.Regex]::Escape($searchScript) -replace [System.Text.RegularExpressions.Regex]::Escape($searchScript), $searchScript
-        # Write file
+        $html = $html -replace '\$searchScript', [System.Text.RegularExpressions.Regex]::Escape($searchScript) -replace [System.Text.RegularExpressions.Regex]::Escape($searchScript), $searchScript        # Write file
         $html | Out-File -FilePath $OutputPath -Encoding utf8
         Write-IntuneToolkitLog -Message "Exported policy data to HTML file at $OutputPath" -Component "ExportToHtml"
+        
+        # Auto-open the HTML file
+        try {
+            Start-Process -FilePath $OutputPath
+            Write-IntuneToolkitLog "Launched HTML report: $OutputPath" -component "ExportToHtml" -file "AssignmentReportButton.ps1"
+        } catch {
+            Write-IntuneToolkitLog "Failed to auto-open HTML report: $($_.Exception.Message)" -component "ExportToHtml" -file "AssignmentReportButton.ps1"
+        }
     } catch {
         Write-IntuneToolkitLog -Message "An error occurred during HTML export: $_" -Component "ExportToHtml" -Severity "Error"
         [System.Windows.MessageBox]::Show("An error occurred during HTML export: $_","Export Failed",[System.Windows.MessageBoxButton]::OK,[System.Windows.MessageBoxImage]::Error)
