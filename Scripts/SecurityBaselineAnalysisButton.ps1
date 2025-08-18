@@ -113,14 +113,14 @@ $SecurityBaselineAnalysisButton.Add_Click({
             }
         }
         Write-IntuneToolkitLog "Total merged policy settings count: $($mergedSettings.Count)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
-        Write-IntuneToolkitLog ("Raw Merged Policy Settings: " + ($mergedSettings | ConvertTo-Json -Depth 10)) -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+        #Write-IntuneToolkitLog ("Raw Merged Policy Settings: " + ($mergedSettings | ConvertTo-Json -Depth 20)) -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
 
         #--------------------------------------------------------------------------------
         # Block: Flatten Policy Settings
         # Process and flatten the merged policy settings for easier comparison.
         #--------------------------------------------------------------------------------
         $flattenedPolicy = Flatten-PolicySettings -MergedPolicy $mergedSettings
-        Write-IntuneToolkitLog ("Flattened Policy Settings (raw): " + ($flattenedPolicy | ConvertTo-Json -Depth 10)) -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+        #Write-IntuneToolkitLog ("Flattened Policy Settings (raw): " + ($flattenedPolicy | ConvertTo-Json -Depth 30)) -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
 
         #--------------------------------------------------------------------------------
         # Block: Locate and Validate Baseline Folders
@@ -259,14 +259,14 @@ $SecurityBaselineAnalysisButton.Add_Click({
             [System.Windows.MessageBox]::Show("No baseline settings found.", "Error")
             return
         }
-        Write-IntuneToolkitLog ("Raw Baseline JSON Merged: " + ($mergedBaselineSettings | ConvertTo-Json -Depth 10)) -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+        #Write-IntuneToolkitLog ("Raw Baseline JSON Merged: " + ($mergedBaselineSettings | ConvertTo-Json -Depth 10)) -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
 
         #--------------------------------------------------------------------------------
         # Block: Flatten Baseline Settings
         # Flatten the merged baseline settings for easier comparison with policy settings.
         #--------------------------------------------------------------------------------
         $flattenedBaseline = Flatten-BaselineSettings -MergedBaseline $mergedBaselineSettings
-        Write-IntuneToolkitLog ("Flattened Baseline Settings (raw): " + ($flattenedBaseline | ConvertTo-Json -Depth 10)) -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+        #Write-IntuneToolkitLog ("Flattened Baseline Settings (raw): " + ($flattenedBaseline | ConvertTo-Json -Depth 10)) -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
 
         #--------------------------------------------------------------------------------
         # Block: Load and Cache Settings Catalog
@@ -338,8 +338,8 @@ $SecurityBaselineAnalysisButton.Add_Click({
             $displayDescription = Maybe-Shorten -raw $baselineId -friendly $displayDescription
             $expectedDisplay = Maybe-Shorten -raw $expectedValue -friendly $expectedDisplay
 
-            Write-IntuneToolkitLog ("Catalog lookup for '$baselineId': Display='$displayComposite', Description='$displayDescription'") -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
-            Write-IntuneToolkitLog ("Comparing baseline item: Policy='$bp', BaselineId='$baselineId', ExpectedValue='$expectedValue'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+            #Write-IntuneToolkitLog ("Catalog lookup for '$baselineId': Display='$displayComposite', Description='$displayDescription'") -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+            #Write-IntuneToolkitLog ("Comparing baseline item: Policy='$bp', BaselineId='$baselineId', ExpectedValue='$expectedValue'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
 
             # Find matching policy settings based on the baseline setting ID.
             $policyMatches = $flattenedPolicy | Where-Object { $_.PolicySettingId -eq $baselineId }
@@ -347,7 +347,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                 # If no match is found, add a report line indicating a missing policy.
                 $comparisonReport += "| $bp | $displayComposite | $displayDescription | $expectedDisplay | **Missing** | N/A | Missing |"
                 $missingSettings++
-                Write-IntuneToolkitLog ("No matching policy settings found for BaselineId '$baselineId'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                #Write-IntuneToolkitLog ("No matching policy settings found for BaselineId '$baselineId'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
             } else {
                 # Concatenate the names of the policies that have a matching setting.
                 $policyList = ($policyMatches | ForEach-Object { "$($_.PolicyName)" }) -join "; "
@@ -364,7 +364,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                 }
                 $comparison = if ($allMatch) { "Matches" } else { "Differs" }
                 $comparisonReport += "| $bp | $displayComposite | $displayDescription | $expectedDisplay | $policyList | $actualValuesDisplay | $comparison |"
-                Write-IntuneToolkitLog ("Comparison for BaselineId '$baselineId': Expected='$expectedDisplay', PolicyList='$policyList', Actual='$actualValuesDisplay', Comparison='$comparison'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
+                #Write-IntuneToolkitLog ("Comparison for BaselineId '$baselineId': Expected='$expectedDisplay', PolicyList='$policyList', Actual='$actualValuesDisplay', Comparison='$comparison'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
                 if ($allMatch) { $matchesCount++ } else { $differsCount++ }
             }
         }

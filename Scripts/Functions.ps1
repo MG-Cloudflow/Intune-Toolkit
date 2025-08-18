@@ -994,7 +994,7 @@ function Find-CatalogEntry {
     )
     $lookupKey = $Key.ToLower()
     if ($CatalogDictionary.ContainsKey($lookupKey)) {
-        Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+        #Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
         return $CatalogDictionary[$lookupKey]
     }
     Write-IntuneToolkitLog "Find-CatalogEntry: No matching entry found for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
