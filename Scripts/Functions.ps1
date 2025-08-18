@@ -1010,7 +1010,7 @@ function Get-SettingDisplayValue {
         [string]$settingValueId,
         [hashtable]$CatalogDictionary
     )
-    Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    #Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingValueId
     if ($entry) {
         if ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
@@ -1033,7 +1033,7 @@ function Get-SettingDescription {
         [string]$settingId,
         [hashtable]$CatalogDictionary
     )
-    Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    #Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingId
     if ($entry) {
         if ($entry.PSObject.Properties["description"] -and $entry.description -ne "") {
