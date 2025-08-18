@@ -16,7 +16,9 @@ Show-Window
 Displays the main window of the application.
 #>
 
+
 $currentVersion = "v1.0.0"
+
 
 #region Log File Setup
 # Define the log file path
