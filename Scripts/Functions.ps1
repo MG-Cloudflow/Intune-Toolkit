@@ -171,6 +171,8 @@ function Get-PlatformApps {
         
         "#microsoft.graph.macOSLobApp"            { $platform = "macOS" }
         "#microsoft.graph.macOSMicrosoftEdgeApp"  { $platform = "macOS" }
+        "#microsoft.graph.macOSDmgApp"            { $platform = "macOS" }
+        "#microsoft.graph.macOSPkgApp"            { $platform = "macOS" }
         
         "#microsoft.graph.webApp"                 { $platform = "Web" }
         
@@ -180,6 +182,66 @@ function Get-PlatformApps {
     return $platform
 }
 
+#--------------------------------------------------------------------------------
+# Function: Format-ApplicationType
+# Converts an OData application type string (e.g., "#microsoft.graph.androidForWorkApp")
+# into a user-friendly format (e.g., "Android For Work App").
+# Updated: Added explicit mapping for known OData types (handles macOS/iOS acronyms,
+# Win32, MSI, VPP, WinGet, etc.) and a smarter fallback splitter.
+#--------------------------------------------------------------------------------
+function Format-ApplicationType {
+    param (
+        [string]$odataType
+    )
+    if (-not $odataType) { return "" }
+
+    $clean = $odataType -replace '^#microsoft\.graph\.', ''
+
+    $map = @{
+        'androidForWorkApp'              = 'Android For Work App'
+        'androidLobApp'                  = 'Android Lob App'
+        'androidManagedStoreApp'         = 'Android Managed Store App'
+        'androidStoreApp'                = 'Android Store App'
+        'iosLobApp'                      = 'iOS Lob App'
+        'iosStoreApp'                    = 'iOS Store App'
+        'iosVppApp'                      = 'iOS VPP App'
+        'macOSDmgApp'                    = 'macOS Dmg App'
+        'macOSLobApp'                    = 'macOS Lob App'
+        'macOSPkgApp'                    = 'macOS Pkg App'
+        'managedAndroidLobApp'           = 'Managed Android Lob App'
+        'managedIOSLobApp'               = 'Managed iOS Lob App'
+        'managedMobileLobApp'            = 'Managed Mobile Lob App'
+        'microsoftStoreForBusinessApp'   = 'Microsoft Store For Business App'
+        'win32LobApp'                    = 'Win32 Lob App'
+        'windowsAppX'                    = 'Windows App X'
+        'windowsMobileMSI'               = 'Windows Mobile MSI'
+        'windowsStoreApp'                = 'Windows Store App'
+        'windowsUniversalAppX'           = 'Windows Universal App X'
+        'windowsWebApp'                  = 'Windows Web App'
+        'winGetApp'                      = 'WinGet App'
+    }
+
+    if ($map.ContainsKey($clean)) { return $map[$clean] }
+
+    # Fallback: split before capitals or digits, then fix common tokens
+    $raw = ($clean -split '(?<=.)(?=[A-Z0-9])') -join ' '
+
+    $normalized = $raw -replace '\bMac Os\b', 'macOS' `
+                           -replace '\bIos\b', 'iOS' `
+                           -replace '\bMsi\b', 'MSI' `
+                           -replace '\bVpp\b', 'VPP' `
+                           -replace '\bWin 32\b', 'Win32' `
+                           -replace '\bWin Get\b', 'WinGet'
+
+    $tokens = $normalized -split ' '
+    $processed = foreach ($t in $tokens) {
+        if ($t -in @('macOS','iOS','Win32','MSI','VPP','WinGet')) { $t }
+        elseif ([string]::IsNullOrWhiteSpace($t)) { continue }
+        else { $t.Substring(0,1).ToUpper() + $t.Substring(1) }
+    }
+    $final = ($processed -join ' ')
+    return $final
+}
 #--------------------------------------------------------------------------------
 # Function: Get-DevicePlatform
 # Determines the device platform based on a partial match in the OData type.
@@ -268,6 +330,7 @@ function Process-Assignment {
         FilterType        = $assignment.target.deviceAndAppManagementAssignmentFilterType
         InstallIntent     = if ($isMobileApp) { if ($assignment.intent) { $assignment.intent } else { "" } } else { "" }
         Platform          = $platform
+        ApplicationType   = if ($isMobileApp) { if ($policy.'@odata.type') { Format-ApplicationType $policy.'@odata.type' } else { "" } } else { "" }
     }
 }
 
@@ -332,6 +395,9 @@ function Reload-Grid {
             $platform = "macOS"
         } elseif ($type -eq "intents") {
             $platform = "Windows"
+        } elseif ($type -eq "windowsAutopilotDeploymentProfiles") {
+            # OData type contains 'windows'; treat as Windows
+            $platform = "Windows"
         } else {
             $platform = Get-DevicePlatform -OdataType $policy.'@odata.type'
         }
@@ -346,7 +412,8 @@ function Reload-Grid {
             $type -eq "managedAppPolicies" -or 
             $type -eq "mobileAppConfigurations" -or 
             $type -eq "deviceShellScripts" -or 
-            $type -eq "deviceCustomAttributeShellScripts") {
+            $type -eq "deviceCustomAttributeShellScripts" -or 
+            $type -eq "windowsAutopilotDeploymentProfiles") {
 
             if ($null -ne $policy.assignments -and $policy.assignments.Count -gt 0) {
                 foreach ($assignment in $policy.assignments) {
@@ -395,6 +462,7 @@ function Reload-Grid {
                     FilterType        = ""
                     InstallIntent     = ""
                     Platform          = $platform
+                    ApplicationType   = Format-ApplicationType $policy.'@odata.type'
                 }
             }
         } elseif ($type -eq "intents") {
@@ -450,6 +518,7 @@ function Load-PolicyData {
     $ConfigurationPoliciesButton.IsEnabled = $false
     $DeviceConfigurationButton.IsEnabled = $false
     $ComplianceButton.IsEnabled = $false
+    $AutopilotProfilesButton.IsEnabled = $false
     $AdminTemplatesButton.IsEnabled = $false
     $ApplicationsButton.IsEnabled = $false
     $AppConfigButton.IsEnabled = $false
@@ -463,12 +532,13 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $false
     $SearchBox.IsEnabled = $false
     $SearchButton.IsEnabled = $false
-    $ExportToCSVButton.IsEnabled = $false
-    $ExportToMDButton.IsEnabled = $false
+    $AssignmentReportButton.IsEnabled = $false
     $RefreshButton.IsEnabled = $false
     $RenameButton.IsEnabled = $false
     $IntentsButton.IsEnabled = $false
     $DeviceCustomAttributeShellScriptsButton.IsEnabled = $false
+    # Disable add-filter button during load
+    $AddFilterButton.IsEnabled = $false
 
     # Load data synchronously.
     $result = Reload-Grid -type $policyType
@@ -478,27 +548,53 @@ function Load-PolicyData {
 
     # Determine which columns should be visible based on the policy type.
     $InstallIntentColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Install Intent" }
+    $ApplicationTypeColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Application Type" }
     $FilterDisplayNameColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Filter Display Name" }
     $FilterTypeColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Filter Type" }
 
     if ($policyType -eq "mobileApps") {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Visible
+        $ApplicationTypeColumn.Visibility = [System.Windows.Visibility]::Visible
     } else {
         $InstallIntentColumn.Visibility = [System.Windows.Visibility]::Collapsed
+        $ApplicationTypeColumn.Visibility = [System.Windows.Visibility]::Collapsed
     }
-    if ($policyType -eq "deviceShellScripts" -or $policyType -eq "intents" -or $policyType -eq "deviceManagementScripts" -or $policyType -eq "deviceCustomAttributeShellScripts") {
+    if ($policyType -eq "deviceShellScripts" -or $policyType -eq "intents" -or $policyType -eq "deviceManagementScripts" -or $policyType -eq "deviceCustomAttributeShellScripts" -or $policyType -eq "windowsAutopilotDeploymentProfiles") {
         $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Collapsed
         $FilterTypeColumn.Visibility = [System.Windows.Visibility]::Collapsed
     } else {
         $FilterDisplayNameColumn.Visibility = [System.Windows.Visibility]::Visible
         $FilterTypeColumn.Visibility = [System.Windows.Visibility]::Visible
     }
+
+    # Populate search field combo box with DataGrid column headers and binding paths
+    $SearchFieldComboBox.Items.Clear()
+    foreach ($col in $PolicyDataGrid.Columns) {
+        # Only include visible text columns
+        if ($col -is [System.Windows.Controls.DataGridTextColumn] -and $col.Visibility -eq [System.Windows.Visibility]::Visible) {
+            $header = $col.Header.ToString()
+            # Extract binding path
+            $bindingPath = $null
+            if ($col.Binding -is [System.Windows.Data.Binding]) {
+                $bindingPath = $col.Binding.Path.Path
+            }
+            if ($bindingPath) {
+                $item = New-Object System.Windows.Controls.ComboBoxItem
+                $item.Content = $header
+                $item.Tag     = $bindingPath
+                $SearchFieldComboBox.Items.Add($item) > $null
+            }
+        }
+    }
+    # Reset selection to first field
+    $SearchFieldComboBox.SelectedIndex = 0
     
     # Re-enable UI elements and update status to indicate data has been loaded.
     $StatusText.Text = $loadedMessage
     $ConfigurationPoliciesButton.IsEnabled = $true
     $DeviceConfigurationButton.IsEnabled = $true
     $ComplianceButton.IsEnabled = $true
+    $AutopilotProfilesButton.IsEnabled = $true
     $AdminTemplatesButton.IsEnabled = $true
     $ApplicationsButton.IsEnabled = $true
     $AppConfigButton.IsEnabled = $true
@@ -511,16 +607,19 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $true
     $SearchBox.IsEnabled = $true
     $SearchButton.IsEnabled = $true
-    $ExportToCSVButton.IsEnabled = $true
-    $ExportToMDButton.IsEnabled = $true
+    $AssignmentReportButton.IsEnabled = $true
     $RefreshButton.IsEnabled = $true
     $RenameButton.IsEnabled = $true
     $IntentsButton.IsEnabled = $true
     $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
+    # Enable add-filter button after load
+    $AddFilterButton.IsEnabled = $true
     if ($policyType -eq "configurationPolicies") {
         $SecurityBaselineAnalysisButton.IsEnabled = $true
+        $SettingsReportButton.IsEnabled = $true
     } else {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
+        $SettingsReportButton.IsEnabled = $false
     }
 }
 
@@ -649,6 +748,7 @@ function Show-ExportOptionsDialog {
     # Grab the controls
     $MdChk  = $Window.FindName("MdCheckbox")
     $CsvChk = $Window.FindName("CsvCheckbox")
+    $HtmlChk = $Window.FindName("HtmlCheckbox")  # new checkbox
     $OkBtn  = $Window.FindName("OkButton")
     $Cancel = $Window.FindName("CancelButton")
 
@@ -670,8 +770,9 @@ function Show-ExportOptionsDialog {
     # Now after it closes, read DialogResult + checkboxes
     if ($Window.DialogResult -eq $true) {
         $sel = @()
-        if ($MdChk.IsChecked)  { $sel += "Markdown" }
-        if ($CsvChk.IsChecked) { $sel += "CSV" }
+        if ($MdChk.IsChecked)   { $sel += "Markdown" }
+        if ($CsvChk.IsChecked)  { $sel += "CSV" }
+        if ($HtmlChk -and $HtmlChk.IsChecked) { $sel += "HTML" }
         return $sel
     } else {
         return $null
@@ -781,46 +882,69 @@ function Build-CatalogDictionary {
     # Initialize an empty hashtable to store catalog items with lowercase keys.
     $dict = @{}
 
-    # Local helper function to recursively add catalog entries (and their children) to the dictionary.
+    # Local helper function to normalize and add catalog entries (and their children) to the dictionary, capturing extra metadata.
     function Add-EntryToDict($entry) {
         if ($null -eq $entry) { return }
+        
+        # Helper to wrap raw entry with supplemental fields we want to expose in reports
+        function New-CatalogWrapperObject {
+            param([object]$src)
+            # Avoid double-wrapping
+            if ($src.PSObject.TypeNames -contains 'IntuneToolkit.CatalogEntry') { return $src }
+            $platform      = $null
+            $technologies  = $null
+            $keywordsJoined = $null
+            if ($src.applicability) {
+                if ($src.applicability.PSObject.Properties['platform'])     { $platform     = $src.applicability.platform }
+                if ($src.applicability.PSObject.Properties['technologies']) { $technologies = $src.applicability.technologies }
+            }
+            if ($src.PSObject.Properties['keywords'] -and $src.keywords) {
+                try { $keywordsJoined = ($src.keywords -join ', ') } catch { $keywordsJoined = [string]$src.keywords }
+            }
+            $wrapper = [PSCustomObject]@{
+                Raw          = $src
+                Id           = $(if($src.PSObject.Properties['id']){$src.id}else{$null})
+                ItemId       = $(if($src.PSObject.Properties['itemId']){$src.itemId}else{$null})
+                Name         = $(if($src.PSObject.Properties['name']){$src.name}else{$null})
+                DisplayName  = $(if($src.PSObject.Properties['displayName']){$src.displayName}else{$null})
+                Description  = $(if($src.PSObject.Properties['description']){$src.description}else{$null})
+                Platform     = $platform
+                Technologies = $technologies
+                Keywords     = $keywordsJoined
+            }
+            $wrapper.PSObject.TypeNames.Insert(0,'IntuneToolkit.CatalogEntry')
+            return $wrapper
+        }
+        
+        function Add-Or-Set([string]$key,[object]$value){
+            $lk = $key.ToLower()
+            if (-not $dict.ContainsKey($lk)) { $dict[$lk] = (New-CatalogWrapperObject -src $value) }
+        }
         # If the entry has options, iterate through each option to add them.
         if ($entry.options) {
             foreach ($option in $entry.options) {
                 if ($option.itemId) {
-                    $key = $option.itemId.ToLower()
-                    if (-not $dict.ContainsKey($key)) {
-                        $dict[$key] = $option
-                    }
+                    Add-Or-Set -key $option.itemId -value $option
                 }
                 if ($option.name) {
-                    $key = $option.name.ToLower()
-                    if (-not $dict.ContainsKey($key)) {
-                        $dict[$key] = $option
-                    }
+                    Add-Or-Set -key $option.name -value $option
                 }
             }
         }
         # Check for properties "id" and add to dictionary.
         if ($entry.PSObject.Properties["id"]) {
             $id = $entry.id.ToString().ToLower()
-            if (-not $dict.ContainsKey($id)) {
-                $dict[$id] = $entry
-            }
+            Add-Or-Set -key $id -value $entry
         }
         # Check for "itemId" property and add to dictionary.
         if ($entry.PSObject.Properties["itemId"]) {
             $itemId = $entry.itemId.ToString().ToLower()
-            if (-not $dict.ContainsKey($itemId)) {
-                $dict[$itemId] = $entry
-            }
+            Add-Or-Set -key $itemId -value $entry
         }
         # Check for "name" property and add to dictionary.
         if ($entry.PSObject.Properties["name"]) {
             $name = $entry.name.ToString().ToLower()
-            if (-not $dict.ContainsKey($name)) {
-                $dict[$name] = $entry
-            }
+            Add-Or-Set -key $name -value $entry
         }
         # Recursively add any child entries if present.
         if ($entry.Children) {
@@ -870,7 +994,7 @@ function Find-CatalogEntry {
     )
     $lookupKey = $Key.ToLower()
     if ($CatalogDictionary.ContainsKey($lookupKey)) {
-        Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+        #Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
         return $CatalogDictionary[$lookupKey]
     }
     Write-IntuneToolkitLog "Find-CatalogEntry: No matching entry found for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
@@ -886,7 +1010,7 @@ function Get-SettingDisplayValue {
         [string]$settingValueId,
         [hashtable]$CatalogDictionary
     )
-    Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    #Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingValueId
     if ($entry) {
         if ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
@@ -909,7 +1033,7 @@ function Get-SettingDescription {
         [string]$settingId,
         [hashtable]$CatalogDictionary
     )
-    Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    #Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingId
     if ($entry) {
         if ($entry.PSObject.Properties["description"] -and $entry.description -ne "") {

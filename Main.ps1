@@ -16,7 +16,9 @@ Show-Window
 Displays the main window of the application.
 #>
 
-$currentVersion = "v0.3.2.2"
+
+$currentVersion = "v1.0.0"
+
 
 #region Log File Setup
 # Define the log file path
@@ -103,7 +105,7 @@ function Show-Window {
             throw "XAML file not found: $xamlPath"
         }
         Write-IntuneToolkitLog "Loading XAML file from $xamlPath"
-        [xml]$xaml = Get-Content $xamlPath -ErrorAction Stop
+        [xml]$xaml = Get-Content $xamlPath -Raw -ErrorAction Stop
         $reader = New-Object System.Xml.XmlNodeReader $xaml
         $Window = [Windows.Markup.XamlReader]::Load($reader)
         Write-IntuneToolkitLog "Successfully loaded XAML file"
@@ -124,11 +126,11 @@ function Show-Window {
         $AddAssignmentButton = $Window.FindName("AddAssignmentButton")
         $BackupButton = $Window.FindName("BackupButton")
         $RestoreButton = $Window.FindName("RestoreButton")
-        $ExportToCSVButton = $Window.FindName("ExportToCSVButton")
-        $ExportToMDButton = $Window.FindName("ExportToMDButton")
+        # Removed individual export buttons; using unified AssignmentReportButton
         $ConfigurationPoliciesButton = $Window.FindName("ConfigurationPoliciesButton")
         $DeviceConfigurationButton = $Window.FindName("DeviceConfigurationButton")
         $ComplianceButton = $Window.FindName("ComplianceButton")
+        $AutopilotProfilesButton = $Window.FindName("AutopilotProfilesButton")
         $AdminTemplatesButton = $Window.FindName("AdminTemplatesButton")
         $IntentsButton = $Window.FindName("IntentsButton")
         $ApplicationsButton = $Window.FindName("ApplicationsButton")
@@ -140,7 +142,75 @@ function Show-Window {
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
         $SecurityBaselineAnalysisButton = $Window.FindName("SecurityBaselineAnalysisButton")
+        $SettingsReportButton = $Window.FindName("SettingsReportButton")
         $DeviceCustomAttributeShellScriptsButton = $Window.FindName("DeviceCustomAttributeShellScriptsButton")
+        $AddFilterButton = $Window.FindName("AddFilterButton")
+        $AdditionalFiltersPanel = $Window.FindName("AdditionalFiltersPanel")
+        # Add filter clause logic sourced from external script
+        
+        # Unified export button
+        $AssignmentReportButton = $Window.FindName("AssignmentReportButton")
+        # Sidebar context toggles: only one can be selected
+        $sidebarButtons = @(
+            $ConfigurationPoliciesButton,
+            $DeviceConfigurationButton,
+            $ComplianceButton,
+            $AutopilotProfilesButton,
+            $AdminTemplatesButton,
+            $IntentsButton,
+            $ApplicationsButton,
+            $AppConfigButton,
+            $PlatformScriptsButton,
+            $RemediationScriptsButton,
+            $MacosScriptsButton,
+            $DeviceCustomAttributeShellScriptsButton
+        )
+        foreach ($btn in $sidebarButtons) {
+            $btn.Add_Checked({ param($sender, $e)
+                foreach ($other in $sidebarButtons) { if ($other -ne $sender) { $other.IsChecked = $false } }
+            })
+        }
+        # Mode toggles for Actions and Reports
+        $ActionsToggle = $Window.FindName("ActionsToggle")
+        $ReportsToggle = $Window.FindName("ReportsToggle")
+        # Ensure mutual exclusivity
+        $ActionsToggle.Add_Click({
+            $ActionsToggle.IsChecked = $true
+            $ReportsToggle.IsChecked = $false
+        })
+        $ReportsToggle.Add_Click({
+            $ReportsToggle.IsChecked = $true
+            $ActionsToggle.IsChecked = $false
+        })
+
+        # Show/hide bottom action/report buttons
+        $actionButtons = @(
+            $RenameButton,
+            $DeleteAssignmentButton,
+            $AddAssignmentButton,
+            $BackupButton,
+            $RestoreButton
+        )
+        $reportButtons = @(
+            $SecurityBaselineAnalysisButton,
+            $SettingsReportButton,
+            $AssignmentReportButton
+        )
+        function Set-BottomButtons {
+            param([bool]$showActions)
+            foreach ($btn in $actionButtons) { $btn.Visibility = if ($showActions) { 'Visible' } else { 'Collapsed' } }
+            foreach ($btn in $reportButtons) { $btn.Visibility = if ($showActions) { 'Collapsed' } else { 'Visible' } }
+        }
+        # Initialize with Actions view
+        Set-BottomButtons -showActions $true
+        # Wire toggles to update visibility
+        $ActionsToggle.Add_Click({ Set-BottomButtons -showActions $true })
+        $ReportsToggle.Add_Click({ Set-BottomButtons -showActions $false })
+
+        # Import unified report button handler
+        #$AssignmentReportButton = $Window.FindName("AssignmentReportButton")
+        #. .\Scripts\AssignmentReportButton.ps1
+
         $global:CurrentPolicyType = ""
 
         # ---------------------------
@@ -158,14 +228,14 @@ function Show-Window {
         . .\Scripts\ConfigurationPoliciesButton.ps1
         . .\Scripts\DeviceConfigurationButton.ps1
         . .\Scripts\ComplianceButton.ps1
+        . .\Scripts\AutopilotProfilesButton.ps1
         . .\Scripts\AdminTemplatesButton.ps1
         . .\Scripts\ApplicationsButton.ps1
         . .\Scripts\DeleteAssignmentButton.ps1
         . .\Scripts\AddAssignmentButton.ps1
         . .\Scripts\BackupButton.ps1
         . .\Scripts\RestoreButton.ps1
-        . .\Scripts\ExportToCSVButton.ps1
-        . .\Scripts\ExportToMDButton.ps1
+        . .\Scripts\AssignmentReportButton.ps1
         . .\Scripts\Show-SelectionDialog.ps1
         . .\Scripts\SearchButton.ps1
         . .\Scripts\RemediationScriptsButton.ps1
@@ -177,6 +247,8 @@ function Show-Window {
         . .\Scripts\CheckVersion.ps1    # Check for the latest version of the toolkit
         . .\Scripts\SecurityBaselineAnalysisButton.ps1
         . .\Scripts\DeviceCustomAttributeShellScriptsButton.ps1
+        . .\Scripts\SettingsReportButton.ps1
+        . .\Scripts\AddFilterButton.ps1
 
         Check-LatestVersion -currentVersion $currentVersion
         Write-IntuneToolkitLog "Successfully imported external scripts"

@@ -60,7 +60,7 @@ $DeleteAssignmentButton.Add_Click({
                 Write-IntuneToolkitLog "Processing selected policy: $($selectedPolicy.PolicyId)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
                 #--------------------------------------------------------------------------------
-                # Retrieve the current assignments for the policy using Microsoft Graph.
+                # Retrieve the current assignments for the policy using Microsoft Graph (include Autopilot branch)
                 #--------------------------------------------------------------------------------
                 if ($global:CurrentPolicyType -eq "mobileApps" -or $global:CurrentPolicyType -eq "mobileAppConfigurations") {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
@@ -68,16 +68,37 @@ $DeleteAssignmentButton.Add_Click({
                 } elseif ($global:CurrentPolicyType -eq "configurationPolicies") {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')/assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).value
+                } elseif ($global:CurrentPolicyType -eq "windowsAutopilotDeploymentProfiles") {
+                    $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeploymentProfiles/$($selectedPolicy.PolicyId)?`$expand=assignments"
+                    $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
                 } else {
                     $urlGetAssignments = "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')?`$expand=assignments"
                     $assignments = (Invoke-MgGraphRequest -Uri $urlGetAssignments -Method GET).assignments
                 }
                 Write-IntuneToolkitLog "Fetching current assignments from: $urlGetAssignments" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
-                Write-IntuneToolkitLog "Fetched assignments: $($assignments.Count)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
+                Write-IntuneToolkitLog "Fetched assignments: $($assignments | ConvertTo-Json -Depth 10)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
 
                 #--------------------------------------------------------------------------------
-                # Filter out the assignment that matches the selected policy's GroupId.
-                # Only assignments that do not match are retained.
+                # Special handling for Autopilot profiles: direct DELETE per assignment id
+                #--------------------------------------------------------------------------------
+                if ($global:CurrentPolicyType -eq "windowsAutopilotDeploymentProfiles") {
+                    $matching = @($assignments | Where-Object { $_.target.groupId -eq $selectedPolicy.GroupId })
+                    if (-not $matching -or $matching.Count -eq 0) {
+                        Write-IntuneToolkitLog "No matching Autopilot assignment found for groupId $($selectedPolicy.GroupId) in profile $($selectedPolicy.PolicyId)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
+                        continue
+                    }
+                    foreach ($m in $matching) {
+                        $delUrl = "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeploymentProfiles/$($selectedPolicy.PolicyId)/assignments/$($m.id)"
+                        Write-IntuneToolkitLog "Deleting Autopilot assignment via $delUrl" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
+                        Invoke-MgGraphRequest -Uri $delUrl -Method DELETE
+                        Write-IntuneToolkitLog "Deleted Autopilot assignment id $($m.id) for profile $($selectedPolicy.PolicyId)" -component "DeleteAssignment-Button" -file "DeleteAssignmentButton.ps1"
+                    }
+                    # Skip standard rebuild flow for this policy
+                    continue
+                }
+
+                #--------------------------------------------------------------------------------
+                # Filter out the assignment that matches the selected policy's GroupId (standard flow)
                 #--------------------------------------------------------------------------------
                 $updatedAssignments = @()
                 foreach ($assignment in $assignments) {

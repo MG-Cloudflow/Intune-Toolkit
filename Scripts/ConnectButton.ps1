@@ -22,7 +22,7 @@ $ConnectButton.Add_Click({
         # Use interactive login with specific scopes
         $authParams = @{
             interactive = $true
-            Scopes = @("User.Read.All", "Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All", "DeviceManagementApps.ReadWrite.All")
+            Scopes = @("Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All", "DeviceManagementApps.ReadWrite.All", "DeviceManagementServiceConfig.ReadWrite.All")
         }
 
         # Call Connect-ToMgGraph.ps1 with the interactive login and custom scopes
@@ -52,6 +52,7 @@ $ConnectButton.Add_Click({
         $ConfigurationPoliciesButton.IsEnabled = $true
         $DeviceConfigurationButton.IsEnabled = $true
         $ComplianceButton.IsEnabled = $true
+        $AutopilotProfilesButton.IsEnabled = $true
         $AdminTemplatesButton.IsEnabled = $true
         $ApplicationsButton.IsEnabled = $true
         $AppConfigButton.IsEnabled = $true
@@ -65,9 +66,9 @@ $ConnectButton.Add_Click({
         $RefreshButton.IsEnabled = $true
         $SearchFieldComboBox.IsEnabled = $true
         $SearchBox.IsEnabled = $true
-        $SearchButton.IsEnabled = $true
-        $ExportToCSVButton.IsEnabled = $true
-        $ExportToMDButton.IsEnabled = $true
+        #$SearchButton.IsEnabled = $true
+        # Enable unified export button instead of separate MD/CSV buttons
+        $AssignmentReportButton.IsEnabled = $true
         $DeviceCustomAttributeShellScriptsButton.IsEnabled = $true
 
         Write-IntuneToolkitLog "UI elements updated successfully" -component "Connect-Button" -file "ConnectButton.ps1"

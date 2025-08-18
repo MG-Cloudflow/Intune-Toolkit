@@ -27,7 +27,9 @@ function Show-SelectionDialog {
         [Parameter(Mandatory = $false)]
         [array]$filters,
         [Parameter(Mandatory = $false)]
-        [bool]$includeIntent = $false
+        [bool]$includeIntent = $false,
+        [Parameter(Mandatory = $false)]
+        [string]$appODataType
     )
 
     Write-IntuneToolkitLog "Show-SelectionDialog function called" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
@@ -35,7 +37,8 @@ function Show-SelectionDialog {
     # ---------------------------------------------------------------------------
     # Load the XAML file for the selection dialog.
     # ---------------------------------------------------------------------------
-    $xamlPath = ".\XML\SelectionDialog.xaml"  # Ensure this path is correct
+    # Resolve the XAML path relative to this script's location, pointing to the root XML folder
+    $xamlPath = Join-Path -Path $PSScriptRoot -ChildPath "..\XML\SelectionDialog.xaml"
     if (-not (Test-Path $xamlPath)) {
         $errorMessage = "XAML file not found at $xamlPath"
         Write-Error $errorMessage
@@ -43,10 +46,13 @@ function Show-SelectionDialog {
         return $null
     }
 
-    [xml]$xaml = Get-Content $xamlPath
+    # Read the entire XAML file as one string
+    $xamlContent = Get-Content -Path $xamlPath -Raw -ErrorAction Stop
     Write-IntuneToolkitLog "Loaded XAML content from $xamlPath" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
 
-    $reader = New-Object System.Xml.XmlNodeReader $xaml
+    # Parse the XAML into a Window object
+    $xmlDoc = [xml]$xamlContent
+    $reader = New-Object System.Xml.XmlNodeReader $xmlDoc
     $Window = [Windows.Markup.XamlReader]::Load($reader)
     if (-not $Window) {
         $errorMessage = "Failed to load XAML"
@@ -55,6 +61,11 @@ function Show-SelectionDialog {
         return $null
     }
     Write-IntuneToolkitLog "XAML loaded successfully" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+    # Ensure the window appears on top and centered
+    try {
+        $Window.WindowStartupLocation = 'CenterScreen'
+        $Window.Topmost = $true
+    } catch {}
 
     # ---------------------------------------------------------------------------
     # Retrieve UI elements from the dialog.
@@ -68,6 +79,11 @@ function Show-SelectionDialog {
     $IntentTextBlock        = $Window.FindName("IntentTextBlock")
     $OkButton               = $Window.FindName("OkButton")
     $CancelButton           = $Window.FindName("CancelButton")
+    $AddExtraAssignmentButton   = $Window.FindName("AddExtraAssignmentButton")
+    $NotificationsTextBlock     = $Window.FindName("NotificationsTextBlock")
+    $NotificationsComboBox      = $Window.FindName("NotificationsComboBox")
+    $DeliveryTextBlock          = $Window.FindName("DeliveryTextBlock")
+    $DeliveryComboBox           = $Window.FindName("DeliveryComboBox")
 
     # ---------------------------------------------------------------------------
     # Validate that all required UI elements are found.
@@ -79,6 +95,7 @@ function Show-SelectionDialog {
     if (-not $AssignmentTypeComboBox) { Write-Error "AssignmentTypeComboBox not found"; Write-IntuneToolkitLog "AssignmentTypeComboBox not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
     if (-not $OkButton) { Write-Error "OkButton not found"; Write-IntuneToolkitLog "OkButton not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
     if (-not $CancelButton) { Write-Error "CancelButton not found"; Write-IntuneToolkitLog "CancelButton not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
+    if (-not $AddExtraAssignmentButton) { Write-Error "AddExtraAssignmentButton not found"; Write-IntuneToolkitLog "AddExtraAssignmentButton not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
     if ($includeIntent -and (-not $IntentComboBox)) { Write-Error "IntentComboBox not found"; Write-IntuneToolkitLog "IntentComboBox not found" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"; return $null }
 
     Write-IntuneToolkitLog "UI elements found successfully" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
@@ -90,14 +107,53 @@ function Show-SelectionDialog {
         $IntentComboBox.Visibility = "Visible"
         $IntentTextBlock.Visibility = "Visible"
     }
+    # Handle Win32 LOB App extra settings
+    if ($appODataType -eq "#microsoft.graph.win32LobApp") {
+        $NotificationsTextBlock.Visibility = "Visible"
+        $NotificationsComboBox.Visibility = "Visible"
+        $DeliveryTextBlock.Visibility     = "Visible"
+        $DeliveryComboBox.Visibility      = "Visible"
+        # Populate notification and delivery options
+        $NotificationsComboBox.Items.Clear()
+        foreach ($opt in @("showAll","showReboot","hideAll")) {
+            $item = New-Object Windows.Controls.ComboBoxItem
+            $item.Content = $opt
+            $NotificationsComboBox.Items.Add($item)
+        }
+        $NotificationsComboBox.SelectedIndex = 0
+        $DeliveryComboBox.Items.Clear()
+        foreach ($opt in @("notConfigured","foreground")) {
+            $item = New-Object Windows.Controls.ComboBoxItem
+            $item.Content = $opt
+            $DeliveryComboBox.Items.Add($item)
+        }
+        $DeliveryComboBox.SelectedIndex = 0
+    } else {
+        $NotificationsTextBlock.Visibility = "Collapsed"
+        $NotificationsComboBox.Visibility = "Collapsed"
+        $DeliveryTextBlock.Visibility     = "Collapsed"
+        $DeliveryComboBox.Visibility      = "Collapsed"
+    }
 
     # ---------------------------------------------------------------------------
     # Disable filter fields for specific policy types.
     # ---------------------------------------------------------------------------
-    if ($global:CurrentPolicyType -in @("deviceCustomAttributeShellScripts", "intents", "deviceShellScripts", "deviceManagementScripts")) {
+    if (
+        $global:CurrentPolicyType -in @(
+            "deviceCustomAttributeShellScripts",
+            "intents",
+            "deviceShellScripts",
+            "deviceManagementScripts",
+            "windowsAutopilotDeploymentProfiles"  # Autopilot: filters not supported
+        ) -or
+        $appODataType -in @(
+            "#microsoft.graph.macOSDmgApp",
+            "#microsoft.graph.macOSPkgApp"
+        )
+    ) {
         $FilterComboBox.IsEnabled = $false
         $FilterTypeComboBox.IsEnabled = $false
-        Write-IntuneToolkitLog "Filter fields disabled due to policy type: $global:CurrentPolicyType" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+        Write-IntuneToolkitLog "Filter fields disabled due to policy type or app type: $global:CurrentPolicyType / $appODataType" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
     } else {
         $FilterComboBox.IsEnabled = $true
         $FilterTypeComboBox.IsEnabled = $true
@@ -106,7 +162,7 @@ function Show-SelectionDialog {
     # ---------------------------------------------------------------------------
     # Populate the group combo box based on the search text.
     # ---------------------------------------------------------------------------
-    function Refresh-GroupComboBox {
+    function Update-GroupComboBox {
         $GroupComboBox.Items.Clear()
         $searchText = $GroupSearchBox.Text.ToLower()
         foreach ($group in $groups) {
@@ -118,11 +174,11 @@ function Show-SelectionDialog {
             }
         }
     }
-    Refresh-GroupComboBox
+    Update-GroupComboBox
     Write-IntuneToolkitLog "Initial population of group combo box completed" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
 
     # Update the group combo box as the user types.
-    $GroupSearchBox.Add_TextChanged({ Refresh-GroupComboBox })
+    $GroupSearchBox.Add_TextChanged({ Update-GroupComboBox })
 
     # ---------------------------------------------------------------------------
     # Populate the filter combo box.
@@ -178,27 +234,27 @@ function Show-SelectionDialog {
     # Initialize the selection object.
     # ---------------------------------------------------------------------------
     $selection = [PSCustomObject]@{
-        Group          = $null
-        Filter         = $null
-        FilterType     = $null
-        AssignmentType = $null
-        Intent         = $null
+        Group                        = $null
+        Filter                       = $null
+        FilterType                   = $null
+        AssignmentType               = $null
+        Intent                       = $null
+        Notifications                = $null
+        DeliveryOptimizationPriority = $null
     }
+    $script:DialogResult = "OK"
 
     # ---------------------------------------------------------------------------
     # OK button event: capture user selections and enforce filter safety.
     # ---------------------------------------------------------------------------
     $OkButton.Add_Click({
-        # Safety check: if one filter field is filled in while the other is not, prompt the user.
         if ($FilterComboBox.IsEnabled -and (
                 ($FilterComboBox.SelectedItem -and -not $FilterTypeComboBox.SelectedItem) -or
                 (-not $FilterComboBox.SelectedItem -and $FilterTypeComboBox.SelectedItem)
             )) {
             [System.Windows.MessageBox]::Show("If you wish to apply a filter, please select both a filter and a filter type.","Incomplete Filter Selection")
-            return  # Do not close the window
+            return
         }
-
-        # Capture the user's selections.
         $selection.Group = $GroupComboBox.SelectedItem
         $selection.Filter = $FilterComboBox.SelectedItem
         $selection.FilterType = $FilterTypeComboBox.SelectedItem
@@ -206,14 +262,41 @@ function Show-SelectionDialog {
         if ($includeIntent) {
             $selection.Intent = $IntentComboBox.SelectedItem.Content
         }
-        Write-Output "Selected Group: $($selection.Group.Content) - $($selection.Group.Tag)"
-        Write-Output "Selected Filter: $($selection.Filter.Content) - $($selection.Filter.Tag)"
-        Write-Output "Selected Filter Type: $($selection.FilterType.Content)"
-        Write-Output "Selected Assignment Type: $($selection.AssignmentType.Content)"
-        if ($includeIntent) {
-            Write-Output "Selected Intent: $($selection.Intent)"
+        if ($NotificationsComboBox.Visibility -eq 'Visible') {
+            $selection.Notifications = $NotificationsComboBox.SelectedItem.Content
         }
-        Write-IntuneToolkitLog "Selection made - Group: $($selection.Group.Content), Filter: $($selection.Filter.Content), Filter Type: $($selection.FilterType.Content), Assignment Type: $($selection.AssignmentType.Content), Intent: $($selection.Intent)" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+        if ($DeliveryComboBox.Visibility -eq 'Visible') {
+            $selection.DeliveryOptimizationPriority = $DeliveryComboBox.SelectedItem.Content
+        }
+        $script:DialogResult = "OK"
+        $Window.Close()
+    })
+
+    # ---------------------------------------------------------------------------
+    # Add Extra Assignment button event: same as OK but sets a different result.
+    # ---------------------------------------------------------------------------
+    $AddExtraAssignmentButton.Add_Click({
+        if ($FilterComboBox.IsEnabled -and (
+                ($FilterComboBox.SelectedItem -and -not $FilterTypeComboBox.SelectedItem) -or
+                (-not $FilterComboBox.SelectedItem -and $FilterTypeComboBox.SelectedItem)
+            )) {
+            [System.Windows.MessageBox]::Show("If you wish to apply a filter, please select both a filter and a filter type.","Incomplete Filter Selection")
+            return
+        }
+        $selection.Group = $GroupComboBox.SelectedItem
+        $selection.Filter = $FilterComboBox.SelectedItem
+        $selection.FilterType = $FilterTypeComboBox.SelectedItem
+        $selection.AssignmentType = $AssignmentTypeComboBox.SelectedItem
+        if ($includeIntent) {
+            $selection.Intent = $IntentComboBox.SelectedItem.Content
+        }
+        if ($NotificationsComboBox.Visibility -eq 'Visible') {
+            $selection.Notifications = $NotificationsComboBox.SelectedItem.Content
+        }
+        if ($DeliveryComboBox.Visibility -eq 'Visible') {
+            $selection.DeliveryOptimizationPriority = $DeliveryComboBox.SelectedItem.Content
+        }
+        $script:DialogResult = "AddExtra"
         $Window.Close()
     })
 
@@ -222,22 +305,36 @@ function Show-SelectionDialog {
     # ---------------------------------------------------------------------------
     $CancelButton.Add_Click({
         Write-IntuneToolkitLog "Selection dialog canceled by user" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
+        $script:DialogResult = "Cancel"
         $Window.Close()
     })
+
+    # Ensure the window is activated on top
+    try {
+        $Window.ShowActivated = $true
+        $Window.Activate()
+        $Window.Focus()
+    } catch {}
     Set-WindowIcon -Window $Window
     $Window.ShowDialog() | Out-Null
 
     # ---------------------------------------------------------------------------
-    # Return the selection if a group was chosen; otherwise, log an error.
+    # Return the selection and dialog result.
     # ---------------------------------------------------------------------------
+    if ($script:DialogResult -eq "Cancel") {
+        return $null
+    }
     if ($selection.Group -and $selection.Group.Tag) {
         Write-IntuneToolkitLog "Returning selected items" -component "Show-SelectionDialog" -file "SelectionDialog.ps1"
         return @{
-            Group          = $selection.Group
-            Filter         = $selection.Filter
-            FilterType     = if ($selection.FilterType) { $selection.FilterType.Content } else { $null }
-            AssignmentType = if ($selection.AssignmentType) { $selection.AssignmentType.Content } else { "Include" }
-            Intent         = $selection.Intent
+            Group                        = $selection.Group
+            Filter                       = $selection.Filter
+            FilterType                   = if ($selection.FilterType) { $selection.FilterType.Content } else { $null }
+            AssignmentType               = if ($selection.AssignmentType) { $selection.AssignmentType.Content } else { "Include" }
+            Intent                       = $selection.Intent
+            Notifications                = $selection.Notifications
+            DeliveryOptimizationPriority = $selection.DeliveryOptimizationPriority
+            DialogResult                 = $script:DialogResult
         }
     } else {
         $errorMessage = "No group selected"
