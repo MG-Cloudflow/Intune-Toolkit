@@ -53,6 +53,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - `Directory.Read.All`
   - `DeviceManagementConfiguration.ReadWrite.All`
   - `DeviceManagementApps.ReadWrite.All`
+  - `DeviceManagementScripts.ReadWrite.All`
 
 ## Installation
 

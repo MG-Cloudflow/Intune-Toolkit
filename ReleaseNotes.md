@@ -1,4 +1,8 @@
 # Release Notes
+### v1.0.1
+- **BugFix**
+  - BREAKING CHANGE -> Permission requirements has changed on script policies. DeviceManagementScripts.ReadWrite.All is now required and Consent Request might be required to add the permissions
+
 ### v1.0.0
 - **New Features**
   - **Windows Autopilot Deployment Profiles**

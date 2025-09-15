@@ -17,7 +17,7 @@ Displays the main window of the application.
 #>
 
 
-$currentVersion = "v1.0.0"
+$currentVersion = "v1.0.1"
 
 
 #region Log File Setup
