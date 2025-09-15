@@ -22,7 +22,7 @@ $ConnectButton.Add_Click({
         # Use interactive login with specific scopes
         $authParams = @{
             interactive = $true
-            Scopes = @("Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All", "DeviceManagementApps.ReadWrite.All", "DeviceManagementServiceConfig.ReadWrite.All")
+            Scopes = @("Directory.Read.All", "DeviceManagementConfiguration.ReadWrite.All", "DeviceManagementApps.ReadWrite.All", "DeviceManagementServiceConfig.ReadWrite.All","DeviceManagementScripts.ReadWrite.All")
         }
 
         # Call Connect-ToMgGraph.ps1 with the interactive login and custom scopes
