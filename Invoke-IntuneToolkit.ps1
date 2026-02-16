@@ -144,6 +144,8 @@ function Show-Window {
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
         $SecurityBaselineAnalysisButton = $Window.FindName("SecurityBaselineAnalysisButton")
         $SettingsReportButton = $Window.FindName("SettingsReportButton")
+        $AdminTemplateReportButton = $Window.FindName("AdminTemplateReportButton")
+        $AdminTemplateBaselineComparisonButton = $Window.FindName("AdminTemplateBaselineComparisonButton")
         $DeviceCustomAttributeShellScriptsButton = $Window.FindName("DeviceCustomAttributeShellScriptsButton")
         $AddFilterButton = $Window.FindName("AddFilterButton")
         $AdditionalFiltersPanel = $Window.FindName("AdditionalFiltersPanel")
@@ -206,6 +208,8 @@ function Show-Window {
         $reportButtons = @(
             $SecurityBaselineAnalysisButton,
             $SettingsReportButton,
+            $AdminTemplateReportButton,
+            $AdminTemplateBaselineComparisonButton,
             $AssignmentReportButton
         )
         function Set-BottomButtons {
@@ -220,6 +224,20 @@ function Show-Window {
                 }
             }
             foreach ($btn in $reportButtons) { $btn.Visibility = if ($showActions) { 'Collapsed' } else { 'Visible' } }
+            
+            # Show/hide report buttons based on policy type
+            if (-not $showActions) {
+                $isAdminTemplates = ($global:CurrentPolicyType -eq "groupPolicyConfigurations")
+                $isConfigPolicies = ($global:CurrentPolicyType -eq "configurationPolicies")
+                
+                # Settings Catalog buttons (only for configurationPolicies)
+                $SecurityBaselineAnalysisButton.Visibility = if ($isConfigPolicies) { 'Visible' } else { 'Collapsed' }
+                $SettingsReportButton.Visibility = if ($isConfigPolicies) { 'Visible' } else { 'Collapsed' }
+                
+                # Admin Template buttons (only for groupPolicyConfigurations)
+                $AdminTemplateReportButton.Visibility = if ($isAdminTemplates) { 'Visible' } else { 'Collapsed' }
+                $AdminTemplateBaselineComparisonButton.Visibility = if ($isAdminTemplates) { 'Visible' } else { 'Collapsed' }
+            }
             
             # Special logic for DeletePolicyButton
             if ($showActions -and $AdvancedActionsCheckBox.IsChecked) {
@@ -290,6 +308,8 @@ function Show-Window {
         . .\Scripts\SecurityBaselineAnalysisButton.ps1
         . .\Scripts\DeviceCustomAttributeShellScriptsButton.ps1
         . .\Scripts\SettingsReportButton.ps1
+        . .\Scripts\AdminTemplateReportButton.ps1
+        . .\Scripts\AdminTemplateBaselineComparisonButton.ps1
         . .\Scripts\AddFilterButton.ps1
 
         Check-LatestVersion -currentVersion $currentVersion

@@ -709,9 +709,18 @@ function Load-PolicyData {
     if ($policyType -eq "configurationPolicies") {
         $SecurityBaselineAnalysisButton.IsEnabled = $true
         $SettingsReportButton.IsEnabled = $true
+        $AdminTemplateReportButton.IsEnabled = $false
+        $AdminTemplateBaselineComparisonButton.IsEnabled = $false
+    } elseif ($policyType -eq "groupPolicyConfigurations") {
+        $SecurityBaselineAnalysisButton.IsEnabled = $false
+        $SettingsReportButton.IsEnabled = $false
+        $AdminTemplateReportButton.IsEnabled = $true
+        $AdminTemplateBaselineComparisonButton.IsEnabled = $true
     } else {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
         $SettingsReportButton.IsEnabled = $false
+        $AdminTemplateReportButton.IsEnabled = $false
+        $AdminTemplateBaselineComparisonButton.IsEnabled = $false
     }
 }
 
@@ -1343,6 +1352,273 @@ function Flatten-PolicySettings {
             }
         }
     }
+    return $flat
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-DefinitionGuidFromUrl
+# Extracts GUID from definition@odata.bind URL
+#--------------------------------------------------------------------------------
+function Get-DefinitionGuidFromUrl {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Url
+    )
+    
+    # URL format: https://graph.microsoft.com/beta/deviceManagement/groupPolicyDefinitions('guid-here')
+    if ($Url -match "groupPolicyDefinitions\('([^']+)'\)") {
+        return $Matches[1]
+    } elseif ($Url -match "groupPolicyDefinitions\(\\u0027([^\\]+)\\u0027\)") {
+        # Handle escaped unicode format: \u0027 = '
+        return $Matches[1]
+    } elseif ($Url -match "groupPolicyDefinitions/([a-f0-9\-]+)") {
+        return $Matches[1]
+    }
+    
+    Write-IntuneToolkitLog "Could not extract GUID from URL: $Url" -component "Get-DefinitionGuidFromUrl" -file "Functions.ps1"
+    return $null
+}
+
+#--------------------------------------------------------------------------------
+# Function: Get-GroupPolicyDefinition
+# Fetches Group Policy Definition details via Graph API for a given definition GUID
+#--------------------------------------------------------------------------------
+function Get-GroupPolicyDefinition {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$DefinitionGuid,
+        
+        [Parameter(Mandatory=$false)]
+        [hashtable]$Cache = @{}
+    )
+    
+    # Check cache first
+    if ($Cache.ContainsKey($DefinitionGuid)) {
+        return $Cache[$DefinitionGuid]
+    }
+    
+    try {
+        $uri = "https://graph.microsoft.com/beta/deviceManagement/groupPolicyDefinitions('$DefinitionGuid')"
+        $definition = Invoke-MgGraphRequest -Uri $uri -Method GET
+        $Cache[$DefinitionGuid] = $definition
+        return $definition
+    } catch {
+        Write-IntuneToolkitLog "Failed to fetch Group Policy Definition $DefinitionGuid : $($_.Exception.Message)" -component "AdminTemplate-Functions"
+        return $null
+    }
+}
+
+#--------------------------------------------------------------------------------
+# Function: Format-PresentationValues
+# Formats presentationValues array into readable string
+#--------------------------------------------------------------------------------
+function Format-PresentationValues {
+    param(
+        [Parameter(Mandatory=$false)]
+        [array]$PresentationValues
+    )
+    
+    if (-not $PresentationValues -or $PresentationValues.Count -eq 0) {
+        return "Not Configured"
+    }
+    
+    $formatted = @()
+    foreach ($pv in $PresentationValues) {
+        $type = $pv.'@odata.type'
+        switch ($type) {
+            '#microsoft.graph.groupPolicyPresentationValueText' {
+                $formatted += $pv.value
+            }
+            '#microsoft.graph.groupPolicyPresentationValueBoolean' {
+                $formatted += if ($pv.value) { "True" } else { "False" }
+            }
+            '#microsoft.graph.groupPolicyPresentationValueDecimal' {
+                $formatted += $pv.value
+            }
+            '#microsoft.graph.groupPolicyPresentationValueList' {
+                if ($pv.values) {
+                    # Extract the 'name' property from each hashtable in the values array
+                    $listValues = @()
+                    foreach ($item in $pv.values) {
+                        if ($item.name) {
+                            $listValues += $item.name
+                        } elseif ($item['name']) {
+                            $listValues += $item['name']
+                        }
+                    }
+                    $formatted += "[$($listValues -join '; ')]"
+                }
+            }
+            '#microsoft.graph.groupPolicyPresentationValueMultiText' {
+                if ($pv.values) {
+                    # Extract values from array (may be simple strings or hashtables)
+                    $multiTextValues = @()
+                    foreach ($item in $pv.values) {
+                        if ($item -is [string]) {
+                            $multiTextValues += $item
+                        } elseif ($item.name) {
+                            $multiTextValues += $item.name
+                        } elseif ($item['name']) {
+                            $multiTextValues += $item['name']
+                        } elseif ($item.value) {
+                            $multiTextValues += $item.value
+                        } elseif ($item['value']) {
+                            $multiTextValues += $item['value']
+                        }
+                    }
+                    $formatted += "[$($multiTextValues -join '; ')]"
+                }
+            }
+            default {
+                if ($pv.value) {
+                    $formatted += $pv.value
+                }
+            }
+        }
+    }
+    
+    return ($formatted -join "; ")
+}
+
+#--------------------------------------------------------------------------------
+# Function: Flatten-AdminTemplateSettings
+# Flattens definitionValues from Administrative Templates policies
+# Handles both expanded definition objects (from API) and definition@odata.bind URLs (from baseline files)
+#--------------------------------------------------------------------------------
+function Flatten-AdminTemplateSettings {
+    param(
+        [Parameter(Mandatory=$true)]
+        [array]$MergedPolicy,
+        
+        [Parameter(Mandatory=$false)]
+        [hashtable]$DefinitionCache = @{}
+    )
+    
+    $flat = @()
+    
+    foreach ($entry in $MergedPolicy) {
+        # Handle both PolicyName and BaselinePolicy properties
+        $policyName = if ($entry.PSObject.Properties['PolicyName']) { 
+            $entry.PolicyName 
+        } elseif ($entry.PSObject.Properties['BaselinePolicy']) { 
+            $entry.BaselinePolicy 
+        } else { 
+            "Unknown Policy" 
+        }
+        
+        $setting = $entry.Setting
+        
+        # Try to get definition object or fetch it from URL
+        $definition = $null
+        $definitionGuid = $null
+        
+        # Check for expanded definition object (from live API calls with $expand=definition)
+        if ($setting.definition) {
+            $definition = $setting.definition
+            $definitionGuid = if ($definition.id) { $definition.id } elseif ($definition['id']) { $definition['id'] } else { $null }
+        } 
+        # Check for definition@odata.bind URL (from baseline JSON files)
+        elseif ($setting.'definition@odata.bind' -or $setting['definition@odata.bind']) {
+            $bindUrl = if ($setting.'definition@odata.bind') { $setting.'definition@odata.bind' } else { $setting['definition@odata.bind'] }
+            $definitionGuid = Get-DefinitionGuidFromUrl -Url $bindUrl
+            
+            if ($definitionGuid) {
+                # Fetch definition from API (with caching)
+                # Note: Baseline files may be from different tenants, so definition might not exist
+                $definition = Get-GroupPolicyDefinition -DefinitionGuid $definitionGuid -Cache $DefinitionCache
+                
+                if (-not $definition) {
+                    Write-IntuneToolkitLog "Definition $definitionGuid not found in current tenant (likely from different tenant baseline). Using GUID for comparison." -component "Flatten-AdminTemplateSettings" -file "Functions.ps1"
+                    # Create a minimal definition object with just the GUID for comparison purposes
+                    $definition = @{
+                        id = $definitionGuid
+                        displayName = "Unknown (GUID: $definitionGuid)"
+                        explainText = "Definition not found in current tenant"
+                        categoryPath = ""
+                    }
+                }
+            }
+        }
+        
+        # Skip if we couldn't get a definition GUID at all
+        if (-not $definitionGuid) {
+            Write-IntuneToolkitLog "Skipping setting without definition GUID in policy $policyName" -component "Flatten-AdminTemplateSettings" -file "Functions.ps1"
+            continue
+        }
+        
+        # Extract definition properties (handle both hashtable and PSCustomObject)
+        $settingName = if ($definition.displayName) {
+            $definition.displayName
+        } elseif ($definition['displayName']) {
+            $definition['displayName']
+        } else {
+            $definitionGuid
+        }
+        
+        $description = if ($definition.explainText) {
+            $definition.explainText
+        } elseif ($definition['explainText']) {
+            $definition['explainText']
+        } else {
+            ""
+        }
+        
+        $categoryPath = if ($definition.categoryPath) {
+            $definition.categoryPath
+        } elseif ($definition['categoryPath']) {
+            $definition['categoryPath']
+        } else {
+            ""
+        }
+        
+        # Get enabled state - handle both PSCustomObject and Hashtable
+        $enabled = if ($setting.enabled -is [bool]) { 
+            $setting.enabled 
+        } elseif ($setting['enabled'] -is [bool]) { 
+            $setting['enabled'] 
+        } elseif ($setting.PSObject.Properties['enabled']) { 
+            $setting.PSObject.Properties['enabled'].Value 
+        } else { 
+            $null 
+        }
+        
+        # Format presentation values (handle both property access methods)
+        $presentationVals = if ($setting.presentationValues) { 
+            $setting.presentationValues 
+        } elseif ($setting['presentationValues']) { 
+            $setting['presentationValues'] 
+        } else { 
+            $null 
+        }
+        $configuredValue = Format-PresentationValues -PresentationValues $presentationVals
+        
+        # Build state display
+        $stateDisplay = if ($null -eq $enabled) {
+            "Not Configured"
+        } elseif ($enabled -eq $true) {
+            "Enabled"
+        } else {
+            "Disabled"
+        }
+        
+        # Combine state with configured values
+        $fullValue = if ($configuredValue -and $configuredValue -ne "Not Configured") {
+            "$stateDisplay | $configuredValue"
+        } else {
+            $stateDisplay
+        }
+        
+        $flat += [PSCustomObject]@{
+            PolicyName        = $policyName
+            SettingName       = $settingName
+            Description       = $description
+            CategoryPath      = $categoryPath
+            ConfiguredValue   = $fullValue
+            Enabled           = $enabled
+            DefinitionGuid    = $definitionGuid
+        }
+    }
+    
     return $flat
 }
 

@@ -273,6 +273,8 @@
                 <Button x:Name="AddAssignmentButton" Content="Add Assignment" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="SecurityBaselineAnalysisButton" Content="Comparison Report" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="SettingsReportButton" Content="Settings Report" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="AdminTemplateReportButton" Content="Admin Template Report" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="AdminTemplateBaselineComparisonButton" Content="Admin Template Comparison" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="BackupButton" Content="Backup Assignments" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="RestoreButton" Content="Restore Assignments" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <!-- Replace separate exports with unified AssignmentReport button -->
