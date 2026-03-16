@@ -146,6 +146,8 @@ function Show-Window {
         $SettingsReportButton = $Window.FindName("SettingsReportButton")
         $AdminTemplateReportButton = $Window.FindName("AdminTemplateReportButton")
         $AdminTemplateBaselineComparisonButton = $Window.FindName("AdminTemplateBaselineComparisonButton")
+        $DeviceConfigReportButton = $Window.FindName("DeviceConfigReportButton")
+        $DeviceConfigBaselineButton = $Window.FindName("DeviceConfigBaselineButton")
         $DeviceCustomAttributeShellScriptsButton = $Window.FindName("DeviceCustomAttributeShellScriptsButton")
         $AddFilterButton = $Window.FindName("AddFilterButton")
         $AdditionalFiltersPanel = $Window.FindName("AdditionalFiltersPanel")
@@ -210,6 +212,8 @@ function Show-Window {
             $SettingsReportButton,
             $AdminTemplateReportButton,
             $AdminTemplateBaselineComparisonButton,
+            $DeviceConfigReportButton,
+            $DeviceConfigBaselineButton,
             $AssignmentReportButton
         )
         function Set-BottomButtons {
@@ -229,6 +233,7 @@ function Show-Window {
             if (-not $showActions) {
                 $isAdminTemplates = ($global:CurrentPolicyType -eq "groupPolicyConfigurations")
                 $isConfigPolicies = ($global:CurrentPolicyType -eq "configurationPolicies")
+                $isDeviceConfig = ($global:CurrentPolicyType -eq "deviceConfigurations")
                 
                 # Settings Catalog buttons (only for configurationPolicies)
                 $SecurityBaselineAnalysisButton.Visibility = if ($isConfigPolicies) { 'Visible' } else { 'Collapsed' }
@@ -237,6 +242,10 @@ function Show-Window {
                 # Admin Template buttons (only for groupPolicyConfigurations)
                 $AdminTemplateReportButton.Visibility = if ($isAdminTemplates) { 'Visible' } else { 'Collapsed' }
                 $AdminTemplateBaselineComparisonButton.Visibility = if ($isAdminTemplates) { 'Visible' } else { 'Collapsed' }
+                
+                # Device Configuration buttons (only for deviceConfigurations)
+                $DeviceConfigReportButton.Visibility = if ($isDeviceConfig) { 'Visible' } else { 'Collapsed' }
+                $DeviceConfigBaselineButton.Visibility = if ($isDeviceConfig) { 'Visible' } else { 'Collapsed' }
             }
             
             # Special logic for DeletePolicyButton
@@ -310,6 +319,8 @@ function Show-Window {
         . .\Scripts\SettingsReportButton.ps1
         . .\Scripts\AdminTemplateReportButton.ps1
         . .\Scripts\AdminTemplateBaselineComparisonButton.ps1
+        . .\Scripts\DeviceConfigurationReportButton.ps1
+        . .\Scripts\DeviceConfigurationBaselineButton.ps1
         . .\Scripts\AddFilterButton.ps1
 
         Check-LatestVersion -currentVersion $currentVersion

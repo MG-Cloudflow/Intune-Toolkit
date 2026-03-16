@@ -275,6 +275,8 @@
                 <Button x:Name="SettingsReportButton" Content="Settings Report" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="AdminTemplateReportButton" Content="Admin Template Report" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="AdminTemplateBaselineComparisonButton" Content="Admin Template Comparison" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="DeviceConfigReportButton" Content="Device Config Report" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+                <Button x:Name="DeviceConfigBaselineButton" Content="Device Config Baseline" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="BackupButton" Content="Backup Assignments" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <Button x:Name="RestoreButton" Content="Restore Assignments" Width="150" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
                 <!-- Replace separate exports with unified AssignmentReport button -->

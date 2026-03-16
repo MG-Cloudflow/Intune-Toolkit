@@ -711,16 +711,29 @@ function Load-PolicyData {
         $SettingsReportButton.IsEnabled = $true
         $AdminTemplateReportButton.IsEnabled = $false
         $AdminTemplateBaselineComparisonButton.IsEnabled = $false
+        $DeviceConfigReportButton.IsEnabled = $false
+        $DeviceConfigBaselineButton.IsEnabled = $false
     } elseif ($policyType -eq "groupPolicyConfigurations") {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
         $SettingsReportButton.IsEnabled = $false
         $AdminTemplateReportButton.IsEnabled = $true
         $AdminTemplateBaselineComparisonButton.IsEnabled = $true
+        $DeviceConfigReportButton.IsEnabled = $false
+        $DeviceConfigBaselineButton.IsEnabled = $false
+    } elseif ($policyType -eq "deviceConfigurations") {
+        $SecurityBaselineAnalysisButton.IsEnabled = $false
+        $SettingsReportButton.IsEnabled = $false
+        $AdminTemplateReportButton.IsEnabled = $false
+        $AdminTemplateBaselineComparisonButton.IsEnabled = $false
+        $DeviceConfigReportButton.IsEnabled = $true
+        $DeviceConfigBaselineButton.IsEnabled = $true
     } else {
         $SecurityBaselineAnalysisButton.IsEnabled = $false
         $SettingsReportButton.IsEnabled = $false
         $AdminTemplateReportButton.IsEnabled = $false
         $AdminTemplateBaselineComparisonButton.IsEnabled = $false
+        $DeviceConfigReportButton.IsEnabled = $false
+        $DeviceConfigBaselineButton.IsEnabled = $false
     }
 }
 
@@ -1620,6 +1633,360 @@ function Flatten-AdminTemplateSettings {
     }
     
     return $flat
+}
+
+<#
+.SYNOPSIS
+Flattens Device Configuration policies into reportable format.
+
+.DESCRIPTION
+Extracts all configured properties from Device Configuration policies, excluding metadata.
+Handles nested objects (e.g., bitLockerSystemDrivePolicy) as expandable sections.
+Preserves camelCase property names from API. Tracks IsConfigured flag for null/empty values.
+
+.PARAMETER MergedPolicy
+Array of policy objects with PolicyName and Policy properties from Device Configuration API.
+
+.RETURNS
+Array of flattened setting objects with PolicyName, PropertyPath, PropertyType, Value, IsConfigured, IsNested.
+#>
+function Flatten-DeviceConfiguration {
+    param(
+        [Parameter(Mandatory=$true)]
+        [array] $MergedPolicy
+    )
+    
+    $flat = [System.Collections.ArrayList]@()
+    
+    # Metadata properties to exclude (regex patterns)
+    $metadataPatterns = @(
+        '^@odata\.',
+        '@odata\.type$',  # Exclude companion @odata.type properties for enums
+        '@odata\.context$',  # OData context metadata
+        '@odata\.navigationLink$',  # OData navigation links
+        '@odata\.associationLink$',  # OData association links
+        '^#microsoft\.graph\.',  # Graph API metadata properties
+        '^id$',
+        '^version$',
+        'DateTime',
+        'ScopeTags',
+        '^assignments',
+        'Applicability',
+        'deviceSettingStateSummaries',
+        'deviceStatuses',
+        'deviceStatusOverview',
+        'groupAssignments',
+        'userStatuses',
+        'userStatusOverview',
+        'supportsScopeTags',
+        '^displayName$',
+        '^description$'
+    )
+    
+    # Helper function to check if property is metadata
+    function Is-MetadataProperty {
+        param([string]$PropertyName)
+        foreach ($pattern in $metadataPatterns) {
+            if ($PropertyName -match $pattern) {
+                return $true
+            }
+        }
+        return $false
+    }
+    
+    # Helper function to recursively flatten nested objects
+    function Flatten-Object {
+        param(
+            [Parameter(Mandatory=$true)]
+            $FlatArray,
+            [Parameter(Mandatory=$true)]
+            [string] $PolicyName,
+            [Parameter(Mandatory=$true)]
+            [string] $PropertyPath,
+            $Value,
+            [Parameter(Mandatory=$false)]
+            [int] $Depth = 0
+        )
+        
+        # Stop recursion at depth 5 to prevent infinite loops
+        if ($Depth -gt 5) { return }
+        
+        # Handle null values
+        if ($null -eq $Value) {
+            $null = $FlatArray.Add([PSCustomObject]@{
+                PolicyName    = $PolicyName
+                PropertyPath  = $PropertyPath
+                PropertyType  = "null"
+                Value         = $null
+                IsConfigured  = $false
+                IsNested      = ($Depth -gt 0)
+                NestingLevel  = $Depth
+            })
+            return
+        }
+        
+        # Handle arrays
+        if ($Value -is [System.Array]) {
+            $arrayValue = if ($Value.Count -eq 0) {
+                $null  # Empty array = not configured
+            } else {
+                ($Value | ForEach-Object {
+                    if ($_ -is [hashtable] -or $_ -is [PSCustomObject]) {
+                        # Array of objects - format as JSON
+                        ($_ | ConvertTo-Json -Compress -Depth 2)
+                    } else {
+                        $_
+                    }
+                }) -join ", "
+            }
+            
+            $null = $FlatArray.Add([PSCustomObject]@{
+                PolicyName    = $PolicyName
+                PropertyPath  = $PropertyPath
+                PropertyType  = "Array[$($Value.Count)]"
+                Value         = $arrayValue
+                IsConfigured  = ($Value.Count -gt 0)
+                IsNested      = ($Depth -gt 0)
+                NestingLevel  = $Depth
+            })
+            return
+        }
+        
+        # Handle nested objects (hashtables or PSCustomObjects)
+        if ($Value -is [hashtable] -or $Value -is [PSCustomObject]) {
+            # Check if object has @odata.type (indicates complex nested object)
+            $odataType = if ($Value -is [hashtable]) {
+                $Value['@odata.type']
+            } else {
+                $Value.'@odata.type'
+            }
+            
+            # Get properties to flatten (exclude metadata)
+            $properties = if ($Value -is [hashtable]) {
+                $Value.Keys | Where-Object { -not (Is-MetadataProperty -PropertyName $_) }
+            } else {
+                $Value.PSObject.Properties.Name | Where-Object { -not (Is-MetadataProperty -PropertyName $_) }
+            }
+            
+            # If no non-metadata properties, mark as not configured and skip
+            if ($properties.Count -eq 0) {
+                $null = $FlatArray.Add([PSCustomObject]@{
+                    PolicyName    = $PolicyName
+                    PropertyPath  = $PropertyPath
+                    PropertyType  = "Object"
+                    Value         = $null
+                    IsConfigured  = $false
+                    IsNested      = ($Depth -gt 0)
+                    NestingLevel  = $Depth
+                })
+                return
+            }
+            
+            # Add parent entry for nested object (marked as NOT configured so it gets filtered out)
+            # Only the leaf properties will be shown in the report
+            $null = $FlatArray.Add([PSCustomObject]@{
+                PolicyName    = $PolicyName
+                PropertyPath  = $PropertyPath
+                PropertyType  = if ($odataType) { $odataType } else { "Object" }
+                Value         = "[Expandable Object]"
+                IsConfigured  = $false
+                IsNested      = ($Depth -gt 0)
+                NestingLevel  = $Depth
+            })
+            
+            # Recursively flatten child properties
+            foreach ($childProp in $properties) {
+                $childValue = if ($Value -is [hashtable]) {
+                    $Value[$childProp]
+                } else {
+                    $Value.$childProp
+                }
+                
+                $childPath = "$PropertyPath.$childProp"
+                Flatten-Object -FlatArray $FlatArray -PolicyName $PolicyName -PropertyPath $childPath -Value $childValue -Depth ($Depth + 1)
+            }
+            return
+        }
+        
+        # Handle primitive values (string, int, bool, enum)
+        $valueType = $Value.GetType().Name
+        $isConfigured = $true
+        
+        # Determine if property is truly configured or just a default value
+        # Graph API returns ALL properties with defaults, so we need to filter aggressively
+        if ($Value -is [string]) {
+            # String enum values that indicate "not configured"
+            if ($Value -in @('notConfigured', 'userDefined', 'deviceDefault', '')) {
+                $isConfigured = $false
+            }
+        }
+        elseif ($Value -is [bool]) {
+            # Boolean false is typically a default/not configured (true is usually explicit configuration)
+            if ($Value -eq $false) {
+                $isConfigured = $false
+            }
+        }
+        elseif ($Value -is [int] -or $Value -is [long]) {
+            # Zero and negative values are typically defaults (except for specific settings)
+            if ($Value -eq 0 -or $Value -lt 0) {
+                $isConfigured = $false
+            }
+        }
+        
+        $null = $FlatArray.Add([PSCustomObject]@{
+            PolicyName    = $PolicyName
+            PropertyPath  = $PropertyPath
+            PropertyType  = $valueType
+            Value         = $Value
+            IsConfigured  = $isConfigured
+            IsNested      = ($Depth -gt 0)
+            NestingLevel  = $Depth
+        })
+    }
+    
+    # Process each policy
+    foreach ($item in $MergedPolicy) {
+        $policyName = $item.PolicyName
+        $policy = $item.Policy
+        
+        # Get @odata.type for the policy
+        $policyType = if ($policy -is [hashtable]) {
+            $policy['@odata.type']
+        } else {
+            $policy.'@odata.type'
+        }
+        
+        # Get all properties
+        $properties = if ($policy -is [hashtable]) {
+            $policy.Keys
+        } else {
+            $policy.PSObject.Properties.Name
+        }
+        
+        # Process each property
+        foreach ($propName in $properties) {
+            # Skip metadata properties
+            if (Is-MetadataProperty -PropertyName $propName) {
+                continue
+            }
+            
+            # Get property value
+            $propValue = if ($policy -is [hashtable]) {
+                $policy[$propName]
+            } else {
+                $policy.$propName
+            }
+            
+            # Flatten the property
+            Flatten-Object -FlatArray $flat -PolicyName $policyName -PropertyPath $propName -Value $propValue -Depth 0
+        }
+    }
+    
+    return $flat
+}
+
+<#
+.SYNOPSIS
+Tests if a value represents "not configured" in a Graph API device configuration.
+
+.DESCRIPTION
+The Graph API returns ALL properties with their schema defaults. This function
+identifies default values that indicate a property was not explicitly configured.
+Covers: $null, 'notConfigured', 'userDefined', 'deviceDefault', '', $false, 0/negative, empty arrays.
+#>
+function Test-IsNotConfiguredValue {
+    param($Value)
+    
+    if ($null -eq $Value) { return $true }
+    
+    if ($Value -is [string]) {
+        return ($Value -in @('notConfigured', 'userDefined', 'deviceDefault', ''))
+    }
+    if ($Value -is [bool]) {
+        return ($Value -eq $false)
+    }
+    if ($Value -is [int] -or $Value -is [long]) {
+        return ($Value -le 0)
+    }
+    if ($Value -is [System.Array]) {
+        return ($Value.Count -eq 0)
+    }
+    
+    return $false
+}
+
+<#
+.SYNOPSIS
+Flattens a device configuration policy into a hashtable for baseline comparison.
+
+.DESCRIPTION
+Recursively flattens nested objects into dot-path keys
+(e.g., "bitLockerSystemDrivePolicy.recoveryOptions.enableBitLockerAfterRecoveryInformationToStore").
+Strips all OData metadata, navigation links, and Graph API scaffolding properties.
+Returns a hashtable: @{ "propertyPath" = value }
+#>
+function Flatten-ForBaselineComparison {
+    param(
+        [Parameter(Mandatory=$true)]
+        $Policy
+    )
+    
+    # Metadata properties to exclude (regex patterns) - unified with Flatten-DeviceConfiguration
+    $metadataPatterns = @(
+        '^@odata\.',
+        '@odata\.type$',
+        '@odata\.context$',
+        '@odata\.navigationLink$',
+        '@odata\.associationLink$',
+        '^#microsoft\.graph\.',
+        '^id$',
+        '^version$',
+        'DateTime',
+        'ScopeTags',
+        '^assignments',
+        'Applicability',
+        'deviceSettingStateSummaries',
+        'deviceStatuses',
+        'deviceStatusOverview',
+        'groupAssignments',
+        'userStatuses',
+        'userStatusOverview',
+        'supportsScopeTags',
+        '^displayName$',
+        '^description$'
+    )
+    
+    $result = @{}
+    
+    function Flatten-RecursiveInner {
+        param($Obj, [string]$Prefix = "", [int]$Depth = 0)
+        
+        if ($Depth -gt 5 -or $null -eq $Obj) { return }
+        
+        $props = if ($Obj -is [hashtable]) { @($Obj.Keys) } else { @($Obj.PSObject.Properties.Name) }
+        
+        foreach ($prop in $props) {
+            # Check metadata patterns
+            $isMetadata = $false
+            foreach ($pattern in $metadataPatterns) {
+                if ($prop -match $pattern) { $isMetadata = $true; break }
+            }
+            if ($isMetadata) { continue }
+            
+            $value = if ($Obj -is [hashtable]) { $Obj[$prop] } else { $Obj.$prop }
+            $path = if ($Prefix) { "$Prefix.$prop" } else { $prop }
+            
+            # Recursively flatten nested objects to leaf values
+            if ($null -ne $value -and ($value -is [hashtable] -or $value -is [PSCustomObject])) {
+                Flatten-RecursiveInner -Obj $value -Prefix $path -Depth ($Depth + 1)
+            } else {
+                $result[$path] = $value
+            }
+        }
+    }
+    
+    Flatten-RecursiveInner -Obj $Policy
+    return $result
 }
 
 #endregion Flattening Functions
