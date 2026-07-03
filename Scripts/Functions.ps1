@@ -1084,11 +1084,16 @@ function Build-CatalogDictionary {
 #--------------------------------------------------------------------------------
 function Maybe-Shorten {
     param (
-        [Parameter(Mandatory=$true)]
-        [string]$raw,
-        [Parameter(Mandatory=$true)]
-        [string]$friendly
+        [Parameter(Mandatory=$false)]
+        [AllowEmptyString()]
+        [string]$raw = "",
+        [Parameter(Mandatory=$false)]
+        [AllowEmptyString()]
+        [string]$friendly = ""
     )
+    # Fall back to the raw value when no friendly value could be resolved
+    # (some catalog entries have an empty displayName and name).
+    if ([string]::IsNullOrWhiteSpace($friendly)) { $friendly = $raw }
     # Remove any newlines and trim the friendly string.
     $friendly = ($friendly -replace "[\r\n]+", " ").Trim()
     if (($friendly.ToLower() -eq $raw.ToLower() -and $friendly.Length -gt 200) -or ($friendly -match '<\?xml')) {
@@ -1106,8 +1111,10 @@ function Find-CatalogEntry {
         [Parameter(Mandatory=$true)]
         [hashtable]$CatalogDictionary,
         [Parameter(Mandatory=$true)]
+        [AllowEmptyString()]
         [string]$Key
     )
+    if ([string]::IsNullOrWhiteSpace($Key)) { return $null }
     $lookupKey = $Key.ToLower()
     if ($CatalogDictionary.ContainsKey($lookupKey)) {
         #Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
@@ -1127,15 +1134,17 @@ function Get-SettingDisplayValue {
         [hashtable]$CatalogDictionary
     )
     #Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    # Always returns a non-empty string: falls back to the input ID when the catalog
+    # entry has no usable displayName/name (some ADMX child options ship empty values).
+    if ([string]::IsNullOrWhiteSpace($settingValueId)) { return $settingValueId }
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingValueId
     if ($entry) {
-        if ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
-            if ($entry.displayName -eq "Top Level Setting Group Collection") {
-                return $entry.name
-            }
+        if ($entry.PSObject.Properties["displayName"] -and -not [string]::IsNullOrWhiteSpace($entry.displayName) -and $entry.displayName -ne "Top Level Setting Group Collection") {
             return $entry.displayName
         }
-        return $entry.name
+        if (-not [string]::IsNullOrWhiteSpace($entry.name)) {
+            return $entry.name
+        }
     }
     return $settingValueId
 }
@@ -1150,15 +1159,20 @@ function Get-SettingDescription {
         [hashtable]$CatalogDictionary
     )
     #Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    # Always returns a non-empty string: falls back to the input ID when the catalog
+    # entry has no usable description/displayName/name.
+    if ([string]::IsNullOrWhiteSpace($settingId)) { return $settingId }
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingId
     if ($entry) {
-        if ($entry.PSObject.Properties["description"] -and $entry.description -ne "") {
+        if ($entry.PSObject.Properties["description"] -and -not [string]::IsNullOrWhiteSpace($entry.description)) {
             return ($entry.description -replace "[\r\n]+", " ").Trim()
         }
-        elseif ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
+        if ($entry.PSObject.Properties["displayName"] -and -not [string]::IsNullOrWhiteSpace($entry.displayName)) {
             return $entry.displayName
         }
-        return $entry.name
+        if (-not [string]::IsNullOrWhiteSpace($entry.name)) {
+            return $entry.name
+        }
     }
     return $settingId
 }
