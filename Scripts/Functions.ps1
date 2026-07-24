@@ -606,6 +606,7 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $false
     $SearchBox.IsEnabled = $false
     $SearchButton.IsEnabled = $false
+    $ShowUnassignedButton.IsEnabled = $false
     $AssignmentReportButton.IsEnabled = $false
     $RefreshButton.IsEnabled = $false
     $RenameButton.IsEnabled = $false
@@ -619,6 +620,8 @@ function Load-PolicyData {
     # Update the DataGrid with the loaded data.
     $PolicyDataGrid.ItemsSource = @($result)
     $PolicyDataGrid.Items.Refresh()
+    # Reset the "Show Unassigned" toggle so it matches the freshly loaded (unfiltered) data.
+    if ($ShowUnassignedButton) { $ShowUnassignedButton.IsChecked = $false }
 
     # Determine which columns should be visible based on the policy type.
     $InstallIntentColumn = $PolicyDataGrid.Columns | Where-Object { $_.Header -eq "Install Intent" }
@@ -698,6 +701,7 @@ function Load-PolicyData {
     $SearchFieldComboBox.IsEnabled = $true
     $SearchBox.IsEnabled = $true
     $SearchButton.IsEnabled = $true
+    $ShowUnassignedButton.IsEnabled = $true
     $AssignmentReportButton.IsEnabled = $true
     $RefreshButton.IsEnabled = $true
     $RenameButton.IsEnabled = $true

@@ -142,6 +142,7 @@ function Show-Window {
         $SearchBox = $Window.FindName("SearchBox")
         $SearchButton = $Window.FindName("SearchButton")
         $SearchFieldComboBox = $Window.FindName("SearchFieldComboBox")
+        $ShowUnassignedButton = $Window.FindName("ShowUnassignedButton")
         $SecurityBaselineAnalysisButton = $Window.FindName("SecurityBaselineAnalysisButton")
         $SettingsReportButton = $Window.FindName("SettingsReportButton")
         $DeviceCustomAttributeShellScriptsButton = $Window.FindName("DeviceCustomAttributeShellScriptsButton")
@@ -278,6 +279,7 @@ function Show-Window {
         . .\Scripts\DeletePolicyButton.ps1  # New Delete Policy script
         . .\Scripts\Show-SelectionDialog.ps1
         . .\Scripts\SearchButton.ps1
+        . .\Scripts\ShowUnassignedButton.ps1
         . .\Scripts\GlobalGroupSearchButton.ps1
         . .\Scripts\Show-GroupSearchDialog.ps1
         . .\Scripts\RemediationScriptsButton.ps1
