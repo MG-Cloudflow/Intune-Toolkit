@@ -18,6 +18,44 @@ $DeleteAssignmentButton.Add_Click({
 #>
 
 #--------------------------------------------------------------------------------
+# Helper: Test-AssignmentMatchesSelection
+# Determines whether a Microsoft Graph assignment corresponds to the grid row the
+# user selected for deletion.
+#
+# "All Users" and "All Devices" are virtual assignment targets that carry no
+# groupId, so matching on target.groupId alone treats them as identical (both
+# $null) and removes both when only one was selected (issue #65). This helper
+# identifies those targets by their target @odata.type instead, and falls back to
+# the groupId plus include/exclude type for normal group-based assignments.
+#--------------------------------------------------------------------------------
+function Test-AssignmentMatchesSelection {
+    param (
+        [Parameter(Mandatory = $true)] $Assignment,
+        [Parameter(Mandatory = $true)] $SelectedPolicy
+    )
+
+    $targetType = [string]$Assignment.target.'@odata.type'
+
+    if ($targetType -eq "#microsoft.graph.allDevicesAssignmentTarget") {
+        # All Devices has no groupId; identify it purely by its target type.
+        return ($SelectedPolicy.GroupDisplayname -eq "All Devices")
+    }
+    elseif ($targetType -eq "#microsoft.graph.allLicensedUsersAssignmentTarget" -or
+            $targetType -eq "#microsoft.graph.allUsersAssignmentTarget") {
+        # All Users has no groupId; identify it purely by its target type.
+        return ($SelectedPolicy.GroupDisplayname -eq "All Users")
+    }
+    else {
+        # Normal group-based assignment: the groupId identifies the group, and the
+        # include/exclude target type distinguishes an include from an exclude of
+        # the same group.
+        if ($Assignment.target.groupId -ne $SelectedPolicy.GroupId) { return $false }
+        $assignmentType = if ($targetType -eq "#microsoft.graph.exclusionGroupAssignmentTarget") { "Exclude" } else { "Include" }
+        return ($assignmentType -eq $SelectedPolicy.AssignmentType)
+    }
+}
+
+#--------------------------------------------------------------------------------
 # Main DeleteAssignmentButton Click Event
 #--------------------------------------------------------------------------------
 $DeleteAssignmentButton.Add_Click({
@@ -98,11 +136,14 @@ $DeleteAssignmentButton.Add_Click({
                 }
 
                 #--------------------------------------------------------------------------------
-                # Filter out the assignment that matches the selected policy's GroupId (standard flow)
+                # Rebuild the assignment list, dropping only the assignment that matches the
+                # selected row. Matching is done by target identity (see
+                # Test-AssignmentMatchesSelection) so that removing "All Users" no longer also
+                # removes "All Devices" - both are groupId-less targets (issue #65).
                 #--------------------------------------------------------------------------------
                 $updatedAssignments = @()
                 foreach ($assignment in $assignments) {
-                    if ($assignment.target.groupId -ne $selectedPolicy.GroupId) {
+                    if (-not (Test-AssignmentMatchesSelection -Assignment $assignment -SelectedPolicy $selectedPolicy)) {
                         # Build an assignment object with the necessary properties.
                         $assignmentObject = @{
                             target = @{
