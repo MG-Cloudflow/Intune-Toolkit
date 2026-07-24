@@ -143,7 +143,19 @@ function Export-ToCsv {
         [PSObject]$PolicyItems
     )
     try {
-        $PolicyItems | Export-Csv -Path $OutputPath -NoTypeInformation
+        # Flatten line feeds in the description so each item stays on a single CSV line.
+        # Embedded CR/LF in PolicyDescription otherwise break rows when the CSV is pasted
+        # into Excel (see issue #56). Copies are used so the in-memory grid data (shared
+        # with $global:AllPolicyData and the other exporters) is left untouched.
+        $exportItems = $PolicyItems | ForEach-Object {
+            $item = $_.PSObject.Copy()
+            if ($null -ne $item.PolicyDescription) {
+                $item.PolicyDescription = [string]$item.PolicyDescription -replace '\r\n|\r|\n', ' '
+            }
+            $item
+        }
+
+        $exportItems | Export-Csv -Path $OutputPath -NoTypeInformation
         [System.Windows.MessageBox]::Show('CSV export succeeded','Success',[System.Windows.MessageBoxButton]::OK,[System.Windows.MessageBoxImage]::Information)
     } catch {
         [System.Windows.MessageBox]::Show("CSV export failed: $_","Error",[System.Windows.MessageBoxButton]::OK,[System.Windows.MessageBoxImage]::Error)
