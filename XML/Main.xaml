@@ -246,6 +246,7 @@
     <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="10,0,10,0">
         <Button x:Name="AddFilterButton" Content="+" Width="30" Style="{StaticResource BaseButtonStyle}" IsEnabled="False" Margin="0,0,2,0"/>
         <Button x:Name="SearchButton" Content="Search" Width="80" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+        <ToggleButton x:Name="ShowUnassignedButton" Content="Show Unassigned" Width="140" Style="{StaticResource SidebarToggleStyle}" IsEnabled="False" Margin="10,0,0,0" ToolTip="Show only items that have no assignments"/>
     </StackPanel>
         </Grid>
         <TextBlock x:Name="StatusText" Text="Please login to Graph before using the app" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"/>
