@@ -17,8 +17,10 @@ $RenameButton.Add_Click({
     $selectedPolicies = $PolicyDataGrid.SelectedItems
     if ($selectedPolicies.Count -eq 1) {
         # Process renaming and description update
+    } elseif ($selectedPolicies.Count -gt 1) {
+        # Process bulk rename with find/replace
     } else {
-        [System.Windows.MessageBox]::Show("Please select exactly one policy/application.")
+        [System.Windows.MessageBox]::Show("Please select at least one policy/application.")
     }
 })
 #>
@@ -55,6 +57,25 @@ function Get-PolicyDetails {
         Write-IntuneToolkitLog $errorMessage -component "Get-PolicyDetails"
         throw $errorMessage
     }
+}
+
+function Get-PolicyNameProperty {
+    switch ($global:CurrentPolicyType) {
+        "configurationPolicies" { "name" }
+        default { "displayName" }
+    }
+}
+
+function Get-PolicyRenameUrl {
+    param (
+        [string]$policyId
+    )
+
+    if ($global:CurrentPolicyType -in @("mobileApps", "mobileAppConfigurations")) {
+        return "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$policyId')"
+    }
+
+    return "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$policyId')"
 }
 
 # Displays the Rename Popup with the current policy name and description prefilled
@@ -113,7 +134,7 @@ $RenameButton.Add_Click({
     Write-IntuneToolkitLog "RenameButton clicked" -component "Rename-Button" -file "RenameButton.ps1"
 
     try {
-        # Ensure only one policy is selected
+        # Ensure one or more policies are selected
         $selectedPolicies = $PolicyDataGrid.SelectedItems
         if ($selectedPolicies.Count -eq 1) {
             $selectedPolicy = $selectedPolicies[0]
@@ -126,10 +147,8 @@ $RenameButton.Add_Click({
             Write-IntuneToolkitLog "Fetched policy details: $($policyDetails | ConvertTo-Json)" -component "Rename-Button"
 
             # Determine the correct property for the policy name based on policy type
-            $currentName = switch ($global:CurrentPolicyType) {
-                "configurationPolicies" { $policyDetails.name }
-                default { $policyDetails.displayName }
-            }
+            $propertyToUpdate = Get-PolicyNameProperty
+            $currentName = $policyDetails.$propertyToUpdate
             $currentDescription = $policyDetails.description
 
             # Display the Rename Popup with current name and description prefilled
@@ -137,12 +156,6 @@ $RenameButton.Add_Click({
 
             # Proceed if there are valid changes to the name or description
             if ($newPolicyInfo.Name -and $newPolicyInfo.Description -and ($newPolicyInfo.Name -ne $currentName -or $newPolicyInfo.Description -ne $currentDescription)) {
-                # Determine the property to update (name or displayName)
-                $propertyToUpdate = switch ($global:CurrentPolicyType) {
-                    "configurationPolicies" { "name" }
-                    default { "displayName" }
-                }
-
                 # Update the policy details with the new name and description
                 $policyDetails.$propertyToUpdate = $newPolicyInfo.Name
                 $policyDetails.description = $newPolicyInfo.Description
@@ -153,11 +166,7 @@ $RenameButton.Add_Click({
                 Write-IntuneToolkitLog "Sending PATCH request with updated body: $($body)" -component "Rename-Button"
 
                 # Construct the PATCH URL for renaming
-                $urlRename = if ($global:CurrentPolicyType -in @("mobileApps", "mobileAppConfigurations")) {
-                    "https://graph.microsoft.com/beta/deviceAppManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')"
-                } else {
-                    "https://graph.microsoft.com/beta/deviceManagement/$($global:CurrentPolicyType)('$($selectedPolicy.PolicyId)')"
-                }
+                $urlRename = Get-PolicyRenameUrl -policyId $selectedPolicy.PolicyId
 
                 try {
                     # Send the PATCH request to update the policy name and description
@@ -174,8 +183,98 @@ $RenameButton.Add_Click({
             } else {
                 [System.Windows.MessageBox]::Show("No changes made or same name/description entered.")
             }
+        } elseif ($selectedPolicies.Count -gt 1) {
+            $findTextInput = [Microsoft.VisualBasic.Interaction]::InputBox(
+                "Enter the text to find in selected policy/application names.",
+                "Bulk Rename Policies",
+                ""
+            )
+            if ([string]::IsNullOrWhiteSpace($findTextInput)) {
+                [System.Windows.MessageBox]::Show("Bulk rename canceled. No find text was entered.")
+                return
+            }
+            $findText = $findTextInput.Trim()
+
+            $replaceText = [Microsoft.VisualBasic.Interaction]::InputBox(
+                "Enter replacement text. Leave empty to remove the text.",
+                "Bulk Rename Policies",
+                ""
+            )
+
+            $replaceDisplayValue = if ($replaceText -eq "") { "<empty>" } else { $replaceText }
+            $confirmationSummary = @(
+                "Selected items: $($selectedPolicies.Count)"
+                "Find text: $findText"
+                "Replace with: $replaceDisplayValue"
+                ""
+                "Do you want to continue?"
+            ) -join "`n"
+
+            $confirmed = Show-ConfirmationDialog `
+                -Title "Confirm Bulk Rename" `
+                -SummaryText $confirmationSummary `
+                -ConfirmButtonText "Rename Policies" `
+                -ConfirmButtonColor "#007ACC"
+
+            if (-not $confirmed) {
+                Write-IntuneToolkitLog "Bulk rename canceled by user." -component "Rename-Button" -file "RenameButton.ps1"
+                return
+            }
+
+            $propertyToUpdate = Get-PolicyNameProperty
+            $renamedCount = 0
+            $skippedCount = 0
+            $failedCount = 0
+
+            foreach ($selectedPolicy in $selectedPolicies) {
+                $currentName = $null
+                $newName = $null
+                try {
+                    $policyId = $selectedPolicy.PolicyId
+                    $policyDetails = Get-PolicyDetails -policyId $policyId
+                    $currentName = $policyDetails.$propertyToUpdate
+
+                    if ([string]::IsNullOrEmpty($currentName)) {
+                        Write-IntuneToolkitLog "Skipping bulk rename for policy/application $policyId because name property '$propertyToUpdate' is empty." -component "Rename-Button" -file "RenameButton.ps1"
+                        $skippedCount++
+                        continue
+                    }
+
+                    if ($currentName.IndexOf($findText, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                        $skippedCount++
+                        continue
+                    }
+
+                    $newName = [System.Text.RegularExpressions.Regex]::Replace(
+                        $currentName,
+                        [System.Text.RegularExpressions.Regex]::Escape($findText),
+                        [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $replaceText },
+                        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+                    )
+                    if ($newName -eq $currentName) {
+                        $skippedCount++
+                        continue
+                    }
+
+                    $policyDetails.$propertyToUpdate = $newName
+                    $body = $policyDetails | ConvertTo-Json
+                    $urlRename = Get-PolicyRenameUrl -policyId $policyId
+
+                    Invoke-MgGraphRequest -Uri $urlRename -Method PATCH -Body $body -ContentType "application/json"
+                    Write-IntuneToolkitLog "Renamed policy/application: $policyId from '$currentName' to '$newName'" -component "Rename-Button" -file "RenameButton.ps1"
+                    $renamedCount++
+                } catch {
+                    $failedCount++
+                    $currentNameLogValue = if ([string]::IsNullOrEmpty($currentName)) { "<unavailable>" } else { $currentName }
+                    $newNameLogValue = if ([string]::IsNullOrEmpty($newName)) { "<unavailable>" } else { $newName }
+                    Write-IntuneToolkitLog "Failed bulk rename for policy/application $($selectedPolicy.PolicyId): '$currentNameLogValue' -> '$newNameLogValue'. Error: $($_.Exception.Message)" -component "Rename-Button" -file "RenameButton.ps1"
+                }
+            }
+
+            Load-PolicyData -policyType $global:CurrentPolicyType -loadingMessage "Loading $($global:CurrentPolicyType)..." -loadedMessage "$($global:CurrentPolicyType) loaded."
+            [System.Windows.MessageBox]::Show("Bulk rename completed.`nRenamed: $renamedCount`nSkipped: $skippedCount`nFailed: $failedCount")
         } else {
-            [System.Windows.MessageBox]::Show("Please select exactly one policy/application.")
+            [System.Windows.MessageBox]::Show("Please select at least one policy/application.")
         }
     } catch {
         $errorMessage = "Failed to rename policy/application. Error: $($_.Exception.Message)"
