@@ -85,7 +85,10 @@ $SettingsReportButton.Add_Click({
         foreach ($group in $grouped) {
             $id           = $group.Name
             if (-not $id) { continue }
-            $policiesList = ($group.Group | ForEach-Object { $_.PolicyName }) -join "; "
+            # A setting can legitimately produce several records within ONE policy (collection
+            # values, group instances), so "duplicate" means configured in more than one policy.
+            $distinctPolicies = @($group.Group | ForEach-Object { $_.PolicyName } | Sort-Object -Unique)
+            $policiesList = $distinctPolicies -join "; "
             $catalogEntry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $id
             $dispName     = ((Get-SettingDisplayValue -settingValueId $id -CatalogDictionary $CatalogDictionary) | Where-Object { $_ })
             if (-not $dispName) { $dispName = $id }
@@ -118,7 +121,7 @@ $SettingsReportButton.Add_Click({
                 Setting          = $dispName
                 Description      = $desc
                 ConfiguredValue  = $valueDisplay
-                Duplicates       = [bool]($group.Count -gt 1)
+                Duplicates       = [bool]($distinctPolicies.Count -gt 1)
                 Platform         = $platformNorm
                 KeywordsRaw      = $keywords
                 PolicySettingId  = $id
@@ -140,10 +143,10 @@ $SettingsReportButton.Add_Click({
                     $dlg.Title    = 'Save Settings Report'
                     $dlg.FileName = "$baseName.md"
                     if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-                        # Overview of shared settings
-                        $overview = foreach ($g in $grouped | Where-Object { $_.Count -gt 1 }) {
+                        # Overview of shared settings (shared = configured in more than one policy)
+                        $overview = foreach ($g in $grouped | Where-Object { @($_.Group | ForEach-Object { $_.PolicyName } | Sort-Object -Unique).Count -gt 1 }) {
                             $name = (Get-SettingDisplayValue -settingValueId $g.Name -CatalogDictionary $CatalogDictionary) || $g.Name
-                            $pols = ($g.Group | ForEach-Object { $_.PolicyName }) -join "; "
+                            $pols = ($g.Group | ForEach-Object { $_.PolicyName } | Sort-Object -Unique) -join "; "
                             "- **$name** configured in policies: $pols"
                         }
                         $md = @('# Settings Report', '', '## Overview: Shared Settings', '')

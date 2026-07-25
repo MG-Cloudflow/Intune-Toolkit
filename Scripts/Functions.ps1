@@ -1084,14 +1084,19 @@ function Build-CatalogDictionary {
 #--------------------------------------------------------------------------------
 function Maybe-Shorten {
     param (
-        [Parameter(Mandatory=$true)]
-        [string]$raw,
-        [Parameter(Mandatory=$true)]
-        [string]$friendly
+        [Parameter(Mandatory=$false)]
+        [AllowEmptyString()]
+        [string]$raw = "",
+        [Parameter(Mandatory=$false)]
+        [AllowEmptyString()]
+        [string]$friendly = ""
     )
+    # Fall back to the raw value when no friendly value could be resolved
+    # (some catalog entries have an empty displayName and name).
+    if ([string]::IsNullOrWhiteSpace($friendly)) { $friendly = $raw }
     # Remove any newlines and trim the friendly string.
-    $friendy = ($friendy -replace "[\r\n]+", " ").Trim()
-    if ($friendly.ToLower() -eq $raw.ToLower() -and $friendly.Length -gt 200 -or $friendly -contains "<?xml") {
+    $friendly = ($friendly -replace "[\r\n]+", " ").Trim()
+    if (($friendly.ToLower() -eq $raw.ToLower() -and $friendly.Length -gt 200) -or ($friendly -match '<\?xml')) {
          return "Cannot display the value in report too Long"
     }
     return $friendly
@@ -1106,8 +1111,10 @@ function Find-CatalogEntry {
         [Parameter(Mandatory=$true)]
         [hashtable]$CatalogDictionary,
         [Parameter(Mandatory=$true)]
+        [AllowEmptyString()]
         [string]$Key
     )
+    if ([string]::IsNullOrWhiteSpace($Key)) { return $null }
     $lookupKey = $Key.ToLower()
     if ($CatalogDictionary.ContainsKey($lookupKey)) {
         #Write-IntuneToolkitLog "Find-CatalogEntry: Found matching entry for key '$Key'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
@@ -1127,15 +1134,17 @@ function Get-SettingDisplayValue {
         [hashtable]$CatalogDictionary
     )
     #Write-IntuneToolkitLog "Get-SettingDisplayValue: Looking up display value for '$settingValueId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    # Always returns a non-empty string: falls back to the input ID when the catalog
+    # entry has no usable displayName/name (some ADMX child options ship empty values).
+    if ([string]::IsNullOrWhiteSpace($settingValueId)) { return $settingValueId }
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingValueId
     if ($entry) {
-        if ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
-            if ($entry.displayName -eq "Top Level Setting Group Collection") {
-                return $entry.name
-            }
+        if ($entry.PSObject.Properties["displayName"] -and -not [string]::IsNullOrWhiteSpace($entry.displayName) -and $entry.displayName -ne "Top Level Setting Group Collection") {
             return $entry.displayName
         }
-        return $entry.name
+        if (-not [string]::IsNullOrWhiteSpace($entry.name)) {
+            return $entry.name
+        }
     }
     return $settingValueId
 }
@@ -1150,15 +1159,20 @@ function Get-SettingDescription {
         [hashtable]$CatalogDictionary
     )
     #Write-IntuneToolkitLog "Get-SettingDescription: Looking up description for '$settingId'" -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
+    # Always returns a non-empty string: falls back to the input ID when the catalog
+    # entry has no usable description/displayName/name.
+    if ([string]::IsNullOrWhiteSpace($settingId)) { return $settingId }
     $entry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $settingId
     if ($entry) {
-        if ($entry.PSObject.Properties["description"] -and $entry.description -ne "") {
+        if ($entry.PSObject.Properties["description"] -and -not [string]::IsNullOrWhiteSpace($entry.description)) {
             return ($entry.description -replace "[\r\n]+", " ").Trim()
         }
-        elseif ($entry.PSObject.Properties["displayName"] -and $entry.displayName -ne "") {
+        if ($entry.PSObject.Properties["displayName"] -and -not [string]::IsNullOrWhiteSpace($entry.displayName)) {
             return $entry.displayName
         }
-        return $entry.name
+        if (-not [string]::IsNullOrWhiteSpace($entry.name)) {
+            return $entry.name
+        }
     }
     return $settingId
 }
@@ -1188,36 +1202,155 @@ function Convert-CompositeToDisplay {
 #region Flattening Functions
 
 #--------------------------------------------------------------------------------
-# Function: Flatten-GroupSetting
-# This function flattens group-based baseline settings by processing each child setting individually.
+# Function: Get-SettingRawValue
+# Converts a Graph setting value object into its raw string value. Only a missing
+# value maps to "Not Defined"; falsy values such as integer 0 are kept as-is.
 #--------------------------------------------------------------------------------
-function Flatten-GroupSetting {
+function Get-SettingRawValue {
     param (
-        [string]$ParentId,
-        [array]$Children,
-        [string]$BaselinePolicy
+        $ValueObject
+    )
+    if ($null -eq $ValueObject -or $null -eq $ValueObject.value -or "$($ValueObject.value)" -eq "") {
+        return "Not Defined"
+    }
+    return "$($ValueObject.value)"
+}
+
+#--------------------------------------------------------------------------------
+# Function: Flatten-SettingInstance
+# Recursively flattens a configuration setting instance into records of
+# {Composite, SettingDefinitionId, Value}. Handles all Graph instance shapes:
+#   - choiceSettingValue (and its children, e.g. sub-settings of an "Enabled" choice)
+#   - choiceSettingCollectionValue (each entry's value and children)
+#   - simpleSettingValue
+#   - simpleSettingCollectionValue (values joined with "; ")
+#   - groupSettingCollectionValue (children of each group instance, any depth)
+# Composite paths chain setting definition IDs with "\" (Parent\Child\...).
+#--------------------------------------------------------------------------------
+function Flatten-SettingInstance {
+    param (
+        [Parameter(Mandatory=$true)]
+        $Instance,
+        [string]$ParentPath = ""
     )
     $results = @()
-    foreach ($child in $Children) {
-        # Determine the expected value based on the type of setting value.
-        if ($child.choiceSettingValue -and $child.choiceSettingValue.value) {
-            $expected = "$($child.choiceSettingValue.value)"
-        }
-        elseif ($child.simpleSettingValue -and $child.simpleSettingValue.value) {
-            $expected = "$($child.simpleSettingValue.value)"
-        }
-        else {
-            $expected = "Not Defined"
-        }
-        # Build a composite description combining parent and child IDs.
-        $composite = "$ParentId\$($child.settingDefinitionId)"
-        Write-IntuneToolkitLog "Flattened baseline child: Composite='$composite', Expected='$expected'" -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
-        # Create a custom object for the flattened baseline setting.
+    if ($null -eq $Instance -or -not $Instance.settingDefinitionId) { return $results }
+    $id = "$($Instance.settingDefinitionId)"
+    $path = if ($ParentPath) { "$ParentPath\$id" } else { $id }
+
+    if ($Instance.choiceSettingValue) {
+        # Choice setting: emit the selected option, then flatten any child settings
+        # exposed by that option (e.g. sub-settings of an enabled parent).
         $results += [PSCustomObject]@{
-            BaselinePolicy       = $BaselinePolicy
-            CompositeDescription = $composite
-            BaselineId           = $child.settingDefinitionId
-            ExpectedValue        = $expected
+            Composite           = $path
+            SettingDefinitionId = $id
+            Value               = (Get-SettingRawValue -ValueObject $Instance.choiceSettingValue)
+        }
+        foreach ($child in @($Instance.choiceSettingValue.children)) {
+            if ($null -ne $child) {
+                $results += Flatten-SettingInstance -Instance $child -ParentPath $path
+            }
+        }
+    }
+    elseif ($Instance.simpleSettingValue) {
+        $results += [PSCustomObject]@{
+            Composite           = $path
+            SettingDefinitionId = $id
+            Value               = (Get-SettingRawValue -ValueObject $Instance.simpleSettingValue)
+        }
+    }
+    elseif ($Instance.groupSettingCollectionValue) {
+        # Group container: flatten the children of every group instance. Additionally emit
+        # one record per instance whose value is a canonical fingerprint of that instance's
+        # child values: compared as a multiset across instances, this preserves the pairing
+        # of sibling values within an instance (catching cross-instance value swaps that
+        # per-child multisets cannot), while staying insensitive to instance order.
+        foreach ($group in @($Instance.groupSettingCollectionValue)) {
+            $childRecords = @()
+            foreach ($child in @($group.children)) {
+                if ($null -ne $child) {
+                    $childRecords += Flatten-SettingInstance -Instance $child -ParentPath $path
+                }
+            }
+            if (@($childRecords).Count -gt 0) {
+                # Escape '\' and '|' in values so a value containing the join separator
+                # cannot make two structurally different instances produce equal fingerprints.
+                $fingerprint = ((@($childRecords) | ForEach-Object { "$($_.SettingDefinitionId)=$("$($_.Value)" -replace '\\','\\' -replace '\|','\|')" } | Sort-Object) -join " | ")
+                $results += [PSCustomObject]@{
+                    Composite           = $path
+                    SettingDefinitionId = $id
+                    Value               = $fingerprint
+                }
+                $results += $childRecords
+            }
+        }
+    }
+    elseif ($Instance.groupSettingValue) {
+        # Singular group instance: no value of its own; flatten its children.
+        foreach ($child in @($Instance.groupSettingValue.children)) {
+            if ($null -ne $child) {
+                $results += Flatten-SettingInstance -Instance $child -ParentPath $path
+            }
+        }
+    }
+    elseif ($Instance.simpleSettingCollectionValue) {
+        # One record per collection entry: the multiset comparison then treats the
+        # collection as an unordered set, and values containing '; ' stay unambiguous.
+        $emitted = $false
+        foreach ($v in @($Instance.simpleSettingCollectionValue)) {
+            if ($null -ne $v -and $null -ne $v.value -and "$($v.value)" -ne "") {
+                $results += [PSCustomObject]@{
+                    Composite           = $path
+                    SettingDefinitionId = $id
+                    Value               = "$($v.value)"
+                }
+                $emitted = $true
+            }
+        }
+        if (-not $emitted) {
+            $results += [PSCustomObject]@{
+                Composite           = $path
+                SettingDefinitionId = $id
+                Value               = "Not Defined"
+            }
+        }
+    }
+    elseif ($Instance.choiceSettingCollectionValue) {
+        # One record per selected option (unordered via the multiset comparison), then
+        # any children of the selected options.
+        $emitted = $false
+        $childResults = @()
+        foreach ($cv in @($Instance.choiceSettingCollectionValue)) {
+            if ($null -eq $cv) { continue }
+            if ($null -ne $cv.value -and "$($cv.value)" -ne "") {
+                $results += [PSCustomObject]@{
+                    Composite           = $path
+                    SettingDefinitionId = $id
+                    Value               = "$($cv.value)"
+                }
+                $emitted = $true
+            }
+            foreach ($child in @($cv.children)) {
+                if ($null -ne $child) {
+                    $childResults += Flatten-SettingInstance -Instance $child -ParentPath $path
+                }
+            }
+        }
+        if (-not $emitted) {
+            $results += [PSCustomObject]@{
+                Composite           = $path
+                SettingDefinitionId = $id
+                Value               = "Not Defined"
+            }
+        }
+        $results += $childResults
+    }
+    else {
+        # Unknown or empty instance shape: keep the setting visible with no value.
+        $results += [PSCustomObject]@{
+            Composite           = $path
+            SettingDefinitionId = $id
+            Value               = "Not Defined"
         }
     }
     return $results
@@ -1225,7 +1358,8 @@ function Flatten-GroupSetting {
 
 #--------------------------------------------------------------------------------
 # Function: Flatten-BaselineSettings
-# This function flattens baseline settings by processing each entry and handling group-based settings.
+# This function flattens baseline settings by recursively processing each entry,
+# including sub-settings nested under enabled choices and group collections.
 #--------------------------------------------------------------------------------
 function Flatten-BaselineSettings {
     param (
@@ -1246,28 +1380,14 @@ function Flatten-BaselineSettings {
             }
             continue
         }
-        # Check if the settingInstance is a group container.
-        if ($bs.settingInstance.'@odata.type' -eq "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance") {
-            Write-IntuneToolkitLog "Processing group container for baseline policy '$bp', ParentID: $($bs.settingInstance.settingDefinitionId)" -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
-            $flat += Flatten-GroupSetting -ParentId $bs.settingInstance.settingDefinitionId -Children ($bs.settingInstance.groupSettingCollectionValue.children) -BaselinePolicy $bp
-        }
-        else {
-            # Process a single (non-group) baseline setting.
-            $baselineId = $bs.settingInstance.settingDefinitionId
-            if ($bs.settingInstance.choiceSettingValue -and $bs.settingInstance.choiceSettingValue.value) {
-                $expected = "$($bs.settingInstance.choiceSettingValue.value)"
-            }
-            elseif ($bs.settingInstance.simpleSettingValue -and $bs.settingInstance.simpleSettingValue.value) {
-                $expected = "$($bs.settingInstance.simpleSettingValue.value)"
-            }
-            else {
-                $expected = "Not Defined"
-            }
+        $records = @(Flatten-SettingInstance -Instance $bs.settingInstance)
+        Write-IntuneToolkitLog "Flattened baseline setting '$($bs.settingInstance.settingDefinitionId)' for policy '$bp' into $($records.Count) record(s)" -component "BaselineFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+        foreach ($rec in $records) {
             $flat += [PSCustomObject]@{
                 BaselinePolicy       = $bp
-                CompositeDescription = $baselineId
-                BaselineId           = $baselineId
-                ExpectedValue        = $expected
+                CompositeDescription = $rec.Composite
+                BaselineId           = $rec.SettingDefinitionId
+                ExpectedValue        = $rec.Value
             }
         }
     }
@@ -1276,7 +1396,9 @@ function Flatten-BaselineSettings {
 
 #--------------------------------------------------------------------------------
 # Function: Flatten-PolicySettings
-# This function flattens policy settings retrieved from the Graph API, handling both single and group-based settings.
+# This function flattens policy settings retrieved from the Graph API by recursively
+# processing each entry, including sub-settings nested under enabled choices and
+# group collections.
 #--------------------------------------------------------------------------------
 function Flatten-PolicySettings {
     param (
@@ -1285,65 +1407,126 @@ function Flatten-PolicySettings {
     $flat = @()
     foreach ($entry in $MergedPolicy) {
         $bp = $entry.PolicyName
+        $policyId = if ($entry.PSObject.Properties["PolicyId"]) { $entry.PolicyId } else { $null }
         $ps = $entry.Setting
         # Validate that the settingInstance exists and contains a settingDefinitionId.
         if (-not $ps.settingInstance -or -not $ps.settingInstance.settingDefinitionId) {
             Write-IntuneToolkitLog "Policy entry for '$bp' missing settingInstance or settingDefinitionId." -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
             $flat += [PSCustomObject]@{
                 PolicyName           = $bp
+                PolicyId             = $policyId
                 CompositeDescription = "(No settingInstance)"
                 PolicySettingId      = ""
                 ActualValue          = "Not Defined"
             }
             continue
         }
-        # If the policy setting is a group container, process each child setting.
-        if ($ps.settingInstance.'@odata.type' -eq "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance") {
-            Write-IntuneToolkitLog "Processing group container for policy '$bp', ParentID: $($ps.settingInstance.settingDefinitionId)" -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
-            foreach ($group in $ps.settingInstance.groupSettingCollectionValue) {
-                foreach ($child in $group.children) {
-                    if ($child.choiceSettingValue -and $child.choiceSettingValue.value) {
-                        $actual = "$($child.choiceSettingValue.value)"
-                    }
-                    elseif ($child.simpleSettingValue -and $child.simpleSettingValue.value) {
-                        $actual = "$($child.simpleSettingValue.value)"
-                    }
-                    else {
-                        $actual = "Not Defined"
-                    }
-                    # Build a composite description for the child setting.
-                    $composite = "$($ps.settingInstance.settingDefinitionId)\$($child.settingDefinitionId)"
-                    Write-IntuneToolkitLog "Flattened policy child: Composite='$composite', Actual='$actual'" -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
-                    $flat += [PSCustomObject]@{
-                        PolicyName           = $bp
-                        CompositeDescription = $composite
-                        PolicySettingId      = $child.settingDefinitionId
-                        ActualValue          = $actual
-                    }
-                }
-            }
-        }
-        else {
-            # Process a single (non-group) policy setting.
-            $policyId = $ps.settingInstance.settingDefinitionId
-            if ($ps.settingInstance.choiceSettingValue -and $ps.settingInstance.choiceSettingValue.value) {
-                $actual = "$($ps.settingInstance.choiceSettingValue.value)"
-            }
-            elseif ($ps.settingInstance.simpleSettingValue -and $ps.settingInstance.simpleSettingValue.value) {
-                $actual = "$($ps.settingInstance.simpleSettingValue.value)"
-            }
-            else {
-                $actual = "Not Defined"
-            }
+        $records = @(Flatten-SettingInstance -Instance $ps.settingInstance)
+        Write-IntuneToolkitLog "Flattened policy setting '$($ps.settingInstance.settingDefinitionId)' for policy '$bp' into $($records.Count) record(s)" -component "PolicyFlatten" -file "SecurityBaselineAnalysisButton.ps1"
+        foreach ($rec in $records) {
             $flat += [PSCustomObject]@{
                 PolicyName           = $bp
-                CompositeDescription = $policyId
-                PolicySettingId      = $policyId
-                ActualValue          = $actual
+                PolicyId             = $policyId
+                CompositeDescription = $rec.Composite
+                PolicySettingId      = $rec.SettingDefinitionId
+                ActualValue          = $rec.Value
             }
         }
     }
     return $flat
+}
+
+#--------------------------------------------------------------------------------
+# Function: Build-BaselineComparison
+# Compares flattened baseline settings against flattened policy settings.
+# Values are aggregated per setting definition ID (a setting can occur multiple
+# times, e.g. one per group collection instance) and compared as multisets per
+# policy, so repeated instances with different values do not produce false
+# "Differs" results. Note the comparison is count-sensitive by design: a policy
+# configuring MORE instances of a setting than the baseline (even with identical
+# values) is reported as "Differs". Callers must deduplicate their inputs (same
+# policy or same baseline merged twice inflates the multisets and skews results).
+# Returns one record per baseline policy + setting ID with:
+#   BaselinePolicy, CompositeDescription, BaselineId, ExpectedValues (array),
+#   PolicyMatches (array of {PolicyName, ActualValues}), Comparison
+#   ('Matches' | 'Differs' | 'Missing').
+#--------------------------------------------------------------------------------
+function Build-BaselineComparison {
+    param (
+        [array]$FlattenedBaseline,
+        [array]$FlattenedPolicy
+    )
+    # Index policy values: setting id -> policy -> list of actual values.
+    $policyIndex = @{}
+    foreach ($p in $FlattenedPolicy) {
+        $id = "$($p.PolicySettingId)"
+        if (-not $id) { continue }
+        $idKey = $id.ToLower()
+        if (-not $policyIndex.ContainsKey($idKey)) { $policyIndex[$idKey] = [ordered]@{} }
+        $polKey = if ($p.PolicyId) { "$($p.PolicyId)" } else { "$($p.PolicyName)" }
+        if (-not $policyIndex[$idKey].Contains($polKey)) {
+            $policyIndex[$idKey][$polKey] = [PSCustomObject]@{
+                PolicyName   = $p.PolicyName
+                ActualValues = @()
+            }
+        }
+        $policyIndex[$idKey][$polKey].ActualValues += "$($p.ActualValue)"
+    }
+
+    # Aggregate baseline rows: baseline policy + setting id -> list of expected values.
+    $baselineIndex = [ordered]@{}
+    foreach ($b in $FlattenedBaseline) {
+        $id = "$($b.BaselineId)"
+        if (-not $id) {
+            Write-IntuneToolkitLog "Skipping baseline entry without setting ID for policy '$($b.BaselinePolicy)' ($($b.CompositeDescription))" -component "BaselineComparison" -file "Functions.ps1"
+            continue
+        }
+        $key = "$($b.BaselinePolicy)|$($id.ToLower())"
+        if (-not $baselineIndex.Contains($key)) {
+            $baselineIndex[$key] = [PSCustomObject]@{
+                BaselinePolicy       = $b.BaselinePolicy
+                CompositeDescription = $b.CompositeDescription
+                BaselineId           = $id
+                ExpectedValues       = @()
+            }
+        }
+        $baselineIndex[$key].ExpectedValues += "$($b.ExpectedValue)"
+    }
+
+    # Compare: per policy, the multiset of actual values must equal the multiset of expected values.
+    $separator = [string][char]31
+    $records = @()
+    foreach ($agg in $baselineIndex.Values) {
+        $policies = $policyIndex[$agg.BaselineId.ToLower()]
+        if (-not $policies -or $policies.Count -eq 0) {
+            $records += [PSCustomObject]@{
+                BaselinePolicy       = $agg.BaselinePolicy
+                CompositeDescription = $agg.CompositeDescription
+                BaselineId           = $agg.BaselineId
+                ExpectedValues       = $agg.ExpectedValues
+                PolicyMatches        = @()
+                Comparison           = "Missing"
+            }
+            continue
+        }
+        $expectedKey = (@($agg.ExpectedValues) | Sort-Object) -join $separator
+        $allMatch = $true
+        $policyMatches = @()
+        foreach ($pol in $policies.Values) {
+            $actualKey = (@($pol.ActualValues) | Sort-Object) -join $separator
+            if ($actualKey -ne $expectedKey) { $allMatch = $false }
+            $policyMatches += $pol
+        }
+        $records += [PSCustomObject]@{
+            BaselinePolicy       = $agg.BaselinePolicy
+            CompositeDescription = $agg.CompositeDescription
+            BaselineId           = $agg.BaselineId
+            ExpectedValues       = $agg.ExpectedValues
+            PolicyMatches        = $policyMatches
+            Comparison           = $(if ($allMatch) { "Matches" } else { "Differs" })
+        }
+    }
+    return $records
 }
 
 #endregion Flattening Functions

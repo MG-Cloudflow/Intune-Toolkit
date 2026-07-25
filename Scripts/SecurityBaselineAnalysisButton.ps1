@@ -73,9 +73,15 @@ $SecurityBaselineAnalysisButton.Add_Click({
         #--------------------------------------------------------------------------------
         # Block: Fetch and Merge Policy Settings via Graph API
         # Retrieve detailed configuration policy settings for each selected policy and merge them.
+        # The grid holds one row per assignment, so deduplicate by policy ID first: merging
+        # the same policy twice would inflate the value multisets and skew the comparison.
         #--------------------------------------------------------------------------------
+        $uniquePolicies = $PolicyDataGrid.SelectedItems |
+            Group-Object -Property { if ($_.PSObject.Properties["PolicyId"]) { $_.PolicyId } else { $_.id } } |
+            ForEach-Object { $_.Group[0] }
+        Write-IntuneToolkitLog "Unique selected policies count: $(@($uniquePolicies).Count)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
         $mergedSettings = @()
-        foreach ($policy in $PolicyDataGrid.SelectedItems) {
+        foreach ($policy in $uniquePolicies) {
             try {
                 # Determine the policy ID (it could be stored as PolicyId or id).
                 $policyId = if ($policy.PSObject.Properties["PolicyId"]) { $policy.PolicyId } else { $policy.id }
@@ -173,8 +179,13 @@ $SecurityBaselineAnalysisButton.Add_Click({
         #--------------------------------------------------------------------------------
         # Block: Process Baseline Folders and Load JSON Baseline Policies
         # For each selected baseline folder, load and merge JSON baseline policies.
+        # Baseline policies are deduplicated by name across folders/files: bundled baselines
+        # ship the same policy in multiple folders (e.g. combined and per-level variants),
+        # and merging both copies would double the expected value multisets and report
+        # false "Differs" for every overlapping setting.
         #--------------------------------------------------------------------------------
         $mergedBaselineSettings = @()
+        $mergedBaselineNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         foreach ($folder in $selectedBaselineFolders) {
             try {
                 Write-IntuneToolkitLog "Attempting to read JSON files from baseline folder: $($folder.FullName)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
@@ -234,10 +245,16 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     if ($jsonContent.settings) {
                         $baselinePolicyName = $jsonContent.name
                         if (-not $baselinePolicyName) {
-                            Write-IntuneToolkitLog "No 'name' property found in $($file.FullName); using folder name $($folder.Name) as baseline policy name" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
-                            $baselinePolicyName = $folder.Name
+                            # Fall back to the file base name (matches the selection prompt); the folder
+                            # name would make multiple nameless files collide in the dedup below.
+                            Write-IntuneToolkitLog "No 'name' property found in $($file.FullName); using file name $($file.BaseName) as baseline policy name" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                            $baselinePolicyName = $file.BaseName
                         } else {
                             Write-IntuneToolkitLog "Extracted baseline policy name '$baselinePolicyName' from $($file.FullName)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                        }
+                        if (-not $mergedBaselineNames.Add($baselinePolicyName)) {
+                            Write-IntuneToolkitLog "Skipping duplicate baseline policy '$baselinePolicyName' from $($file.FullName) (already merged from another file/folder)" -component "SecurityBaselineAnalysis-Button" -file "SecurityBaselineAnalysisButton.ps1"
+                            continue
                         }
                         foreach ($setting in $jsonContent.settings) {
                             $mergedBaselineSettings += [PSCustomObject]@{
@@ -307,19 +324,21 @@ $SecurityBaselineAnalysisButton.Add_Click({
 
         #--------------------------------------------------------------------------------
         # Block: Compare Baseline and Policy Settings
-        # Compare the flattened baseline settings (expected) against the flattened policy settings (actual)
-        # and build the comparison report.
+        # Compare the flattened baseline settings (expected) against the flattened policy
+        # settings (actual). Values are aggregated per setting ID and compared as multisets
+        # (see Build-BaselineComparison), so settings with multiple instances (e.g. group
+        # collections) compare correctly.
         #--------------------------------------------------------------------------------
-        $totalBaselineSettings = $flattenedBaseline.Count
-        $missingSettings = 0
-        $matchesCount = 0
-        $differsCount = 0
+        $comparisonRecords = @(Build-BaselineComparison -FlattenedBaseline $flattenedBaseline -FlattenedPolicy $flattenedPolicy)
+        $totalBaselineSettings = $comparisonRecords.Count
+        $missingSettings = @($comparisonRecords | Where-Object { $_.Comparison -eq "Missing" }).Count
+        $matchesCount = @($comparisonRecords | Where-Object { $_.Comparison -eq "Matches" }).Count
+        $differsCount = @($comparisonRecords | Where-Object { $_.Comparison -eq "Differs" }).Count
         $comparisonReport = @()
-        
-        foreach ($item in $flattenedBaseline) {
+
+        foreach ($item in $comparisonRecords) {
             $bp = $item.BaselinePolicy
             $baselineId = $item.BaselineId
-            $expectedValue = $item.ExpectedValue
 
             # Build display composite:
             if ($item.CompositeDescription -match "\\") {
@@ -330,42 +349,27 @@ $SecurityBaselineAnalysisButton.Add_Click({
             $displayDescription = Get-SettingDescription -settingId $baselineId -CatalogDictionary $CatalogDictionary
             # Remove newlines from description for clean display.
             $displayDescription = ($displayDescription -replace "[\r\n]+", " ").Trim()
-            # Look up the friendly expected value.
-            $expectedDisplay = Get-SettingDisplayValue -settingValueId $expectedValue -CatalogDictionary $CatalogDictionary
+            # Look up the friendly expected value(s).
+            $rawExpected = ($item.ExpectedValues -join "; ")
+            $expectedDisplay = ($item.ExpectedValues | ForEach-Object { Get-SettingDisplayValue -settingValueId $_ -CatalogDictionary $CatalogDictionary }) -join "; "
 
             # Use the Maybe-Shorten function to check for overly long or raw values.
             $displayComposite = Maybe-Shorten -raw $item.CompositeDescription -friendly $displayComposite
             $displayDescription = Maybe-Shorten -raw $baselineId -friendly $displayDescription
-            $expectedDisplay = Maybe-Shorten -raw $expectedValue -friendly $expectedDisplay
+            $expectedDisplay = Maybe-Shorten -raw $rawExpected -friendly $expectedDisplay
 
-            #Write-IntuneToolkitLog ("Catalog lookup for '$baselineId': Display='$displayComposite', Description='$displayDescription'") -component "CatalogLookup" -file "SecurityBaselineAnalysisButton.ps1"
-            #Write-IntuneToolkitLog ("Comparing baseline item: Policy='$bp', BaselineId='$baselineId', ExpectedValue='$expectedValue'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
-
-            # Find matching policy settings based on the baseline setting ID.
-            $policyMatches = $flattenedPolicy | Where-Object { $_.PolicySettingId -eq $baselineId }
-            if (-not $policyMatches -or $policyMatches.Count -eq 0) {
+            if ($item.Comparison -eq "Missing") {
                 # If no match is found, add a report line indicating a missing policy.
                 $comparisonReport += "| $bp | $displayComposite | $displayDescription | $expectedDisplay | **Missing** | N/A | Missing |"
-                $missingSettings++
-                #Write-IntuneToolkitLog ("No matching policy settings found for BaselineId '$baselineId'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
             } else {
                 # Concatenate the names of the policies that have a matching setting.
-                $policyList = ($policyMatches | ForEach-Object { "$($_.PolicyName)" }) -join "; "
-                # Look up the friendly display value for the actual values.
-                $actualValuesDisplay = ($policyMatches | ForEach-Object { Get-SettingDisplayValue -settingValueId $_.ActualValue -CatalogDictionary $CatalogDictionary }) -join "; "
-                $actualValuesDisplay = Maybe-Shorten -raw ($policyMatches | ForEach-Object { $_.ActualValue } | Out-String) -friendly $actualValuesDisplay
-                $allMatch = $true
-                # Check if every matched policy setting has the expected value.
-                foreach ($match in $policyMatches) {
-                    if ($match.ActualValue -ne $expectedValue) {
-                        $allMatch = $false
-                        break
-                    }
-                }
-                $comparison = if ($allMatch) { "Matches" } else { "Differs" }
-                $comparisonReport += "| $bp | $displayComposite | $displayDescription | $expectedDisplay | $policyList | $actualValuesDisplay | $comparison |"
-                #Write-IntuneToolkitLog ("Comparison for BaselineId '$baselineId': Expected='$expectedDisplay', PolicyList='$policyList', Actual='$actualValuesDisplay', Comparison='$comparison'") -component "Comparison" -file "SecurityBaselineAnalysisButton.ps1"
-                if ($allMatch) { $matchesCount++ } else { $differsCount++ }
+                $policyList = ($item.PolicyMatches | ForEach-Object { "$($_.PolicyName)" }) -join "; "
+                # Look up the friendly display value for the actual values (per policy).
+                $actualValuesDisplay = ($item.PolicyMatches | ForEach-Object {
+                    ($_.ActualValues | ForEach-Object { Get-SettingDisplayValue -settingValueId $_ -CatalogDictionary $CatalogDictionary }) -join "; "
+                }) -join "; "
+                $actualValuesDisplay = Maybe-Shorten -raw (($item.PolicyMatches | ForEach-Object { $_.ActualValues }) -join "; ") -friendly $actualValuesDisplay
+                $comparisonReport += "| $bp | $displayComposite | $displayDescription | $expectedDisplay | $policyList | $actualValuesDisplay | $($item.Comparison) |"
             }
         }
 
@@ -450,11 +454,11 @@ $SecurityBaselineAnalysisButton.Add_Click({
             # ------------------------------------
 
             # 1) Build two CSV tables: baseline comparison and extra policy settings
+            #    (reuses the aggregated comparison records so Markdown/CSV/HTML stay consistent)
             $baselineComparisonObjects = @()
-            foreach ($item in $flattenedBaseline) {
-                $bp               = $item.BaselinePolicy
-                $baselineId       = $item.BaselineId
-                $expectedValue    = $item.ExpectedValue
+            foreach ($item in $comparisonRecords) {
+                $bp         = $item.BaselinePolicy
+                $baselineId = $item.BaselineId
 
                 # Friendly lookups
                 if ($item.CompositeDescription -match "\\") {
@@ -463,7 +467,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     $displayName = Get-SettingDisplayValue -settingValueId $baselineId -CatalogDictionary $CatalogDictionary
                 }
                 $description = Get-SettingDescription -settingId $baselineId -CatalogDictionary $CatalogDictionary
-                $expected    = Get-SettingDisplayValue -settingValueId $expectedValue -CatalogDictionary $CatalogDictionary
+                $expected    = ($item.ExpectedValues | ForEach-Object { Get-SettingDisplayValue -settingValueId $_ -CatalogDictionary $CatalogDictionary }) -join '; '
 
                      # Metadata (Platform/Technologies/Keywords) from catalog wrapper
                      $catalogEntry = Find-CatalogEntry -CatalogDictionary $CatalogDictionary -Key $baselineId
@@ -474,23 +478,15 @@ $SecurityBaselineAnalysisButton.Add_Click({
                                             } else { '' }
                      $keywordsMeta = if($catalogEntry -and $catalogEntry.Keywords){ $catalogEntry.Keywords } else { '' }
 
-                # Find policy matches (avoid using automatic variable $Matches)
-                $policyMatches = $flattenedPolicy | Where-Object { $_.PolicySettingId -eq $baselineId }
-                if (-not $policyMatches) {
-                    $status = 'Missing'
+                if ($item.Comparison -eq 'Missing') {
                     $policies = ''
                     $actual   = ''
                 } else {
-                    # Deduplicate by PolicyId + ActualValue to avoid duplicate value repeats within same policy
-                    $uniqueMatches = $policyMatches |
-                        Sort-Object -Property PolicyId, ActualValue -Unique
-                    # Make configured policy list unique & sorted (based on unique matches)
-                    $policies = ($uniqueMatches | ForEach-Object { $_.PolicyName } | Sort-Object -Unique) -join '; '
-                    $actual   = ($uniqueMatches | ForEach-Object {
-                        Get-SettingDisplayValue -settingValueId $_.ActualValue -CatalogDictionary $CatalogDictionary
+                    # Make configured policy list unique & sorted
+                    $policies = ($item.PolicyMatches | ForEach-Object { $_.PolicyName } | Sort-Object -Unique) -join '; '
+                    $actual   = ($item.PolicyMatches | ForEach-Object {
+                        ($_.ActualValues | ForEach-Object { Get-SettingDisplayValue -settingValueId $_ -CatalogDictionary $CatalogDictionary }) -join '; '
                     }) -join '; '
-                    $allMatch = $uniqueMatches | ForEach-Object { $_.ActualValue } | Where-Object { $_ -ne $expectedValue } | Measure-Object | Select-Object -ExpandProperty Count
-                    $status   = if ($allMatch -eq 0) { 'Matches' } else { 'Differs' }
                 }
 
                 $baselineComparisonObjects += [PSCustomObject]@{
@@ -503,7 +499,7 @@ $SecurityBaselineAnalysisButton.Add_Click({
                     ExpectedValue      = $expected
                     ConfiguredPolicies = $policies
                     ActualValues       = $actual
-                    Comparison         = $status
+                    Comparison         = $item.Comparison
                 }
             }
 
