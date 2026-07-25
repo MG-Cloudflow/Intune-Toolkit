@@ -144,7 +144,7 @@ function Export-ToCsv {
     )
     try {
         # Flatten line feeds in the description so each item stays on a single CSV line.
-        # Embedded CR/LF in PolicyDescription otherwise break rows when the CSV is pasted
+        # Embedded CR/LF in PolicyDescription otherwise breaks rows when the CSV is pasted
         # into Excel (see issue #56). Copies are used so the in-memory grid data (shared
         # with $global:AllPolicyData and the other exporters) is left untouched.
         $exportItems = $PolicyItems | ForEach-Object {
