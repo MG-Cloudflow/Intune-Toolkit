@@ -189,12 +189,11 @@ $RenameButton.Add_Click({
                 "Bulk Rename Policies",
                 ""
             )
-            $findText = if ($null -eq $findTextInput) { "" } else { $findTextInput.Trim() }
-
-            if (-not $findText) {
+            if ([string]::IsNullOrWhiteSpace($findTextInput)) {
                 [System.Windows.MessageBox]::Show("Bulk rename canceled. No find text was entered.")
                 return
             }
+            $findText = $findTextInput.Trim()
 
             $replaceText = [Microsoft.VisualBasic.Interaction]::InputBox(
                 "Enter replacement text. Leave empty to remove the text.",
@@ -231,14 +230,24 @@ $RenameButton.Add_Click({
                 try {
                     $policyId = $selectedPolicy.PolicyId
                     $policyDetails = Get-PolicyDetails -policyId $policyId
-                    $currentName = [string]$policyDetails.$propertyToUpdate
+                    $currentName = $policyDetails.$propertyToUpdate
 
-                    if (-not $currentName.Contains($findText)) {
+                    if ([string]::IsNullOrEmpty($currentName)) {
                         $skippedCount++
                         continue
                     }
 
-                    $newName = $currentName.Replace($findText, $replaceText)
+                    if ($currentName.IndexOf($findText, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                        $skippedCount++
+                        continue
+                    }
+
+                    $newName = [System.Text.RegularExpressions.Regex]::Replace(
+                        $currentName,
+                        [System.Text.RegularExpressions.Regex]::Escape($findText),
+                        [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $replaceText },
+                        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+                    )
                     if ($newName -eq $currentName) {
                         $skippedCount++
                         continue
