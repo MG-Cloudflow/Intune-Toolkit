@@ -1,4 +1,24 @@
 # Release Notes
+### v1.3.0
+- **New Features**
+  - **Show Unassigned Filter** (#68)
+    - New "Show Unassigned" toggle next to the search controls to instantly filter the grid to policies and applications that have no assignments.
+    - Enabled once policy data is loaded, resets when a new policy type is selected, and restores the full list when switched off.
+- **Bug Fixes**
+  - **Settings Catalog Comparison — Sub-Settings of Enabled Parents** (#66)
+    - Fixed Settings Catalog choice settings whose sub-settings (`choiceSettingValue.children`) were never traversed, so child settings of an Enabled parent were silently dropped from the Security Baseline Analysis and Settings Report (1,386 child settings across the bundled baselines).
+    - Replaced the one-level flatteners with a recursive `Flatten-SettingInstance` handling every Graph instance shape: choice (with children at any depth), choice collection, simple, simple collection, group collection, and singular group instances.
+    - Added `Build-BaselineComparison`, which aggregates expected/actual values per setting ID and compares them as multisets per policy — a baseline compared against itself now scores 100% Matches.
+    - Preserved integer `0` values (no longer misreported as "Not Defined"), deduplicated selected grid rows and bundled baseline policies to avoid doubled value multisets, and flagged a setting as Duplicate only when configured in more than one policy.
+    - Fixed an empty-string binding error that could abort the whole baseline analysis when rendering catalog entries (ADMX child dropdowns, macOS app entries) without a display name.
+  - **All Users / All Devices Assignment Removal** (#67)
+    - Fixed removal of a virtual "All Users" or "All Devices" assignment also removing the other, since neither carries a `groupId`. Assignments are now matched by target `@odata.type` for group-less targets and by `groupId` plus include/exclude type for group assignments, so each is removed independently.
+  - **CSV Export Line Feeds** (#69)
+    - `Export-ToCsv` now flattens CR/LF characters in policy descriptions to spaces so each record stays on a single line when pasted into Excel, leaving the in-memory grid and the Markdown/HTML exporters untouched.
+- **UI Enhancements**
+  - **Rename Policy Dialog** (#70)
+    - Fixed clipped text in the Policy Name field of the Rename Policy dialog for better readability.
+
 ### v1.2.0
 - **New Features**
   - **Multi-Method Authentication Support**
