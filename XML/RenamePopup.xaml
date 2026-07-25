@@ -194,7 +194,7 @@
 
         <!-- Name field -->
         <TextBlock Text="Policy Name" Margin="10,0,10,5" FontWeight="Bold" FontSize="12" />
-        <TextBox x:Name="NewPolicyNameTextBox" Grid.Row="1" Width="300" Height="30" Margin="10"/>
+        <TextBox x:Name="NewPolicyNameTextBox" Grid.Row="1" Width="300" Margin="10"/>
 
         <!-- Description field -->
         <TextBlock Text="Policy Description" Grid.Row="2" Margin="10,10,10,5" FontWeight="Bold" FontSize="12" />
