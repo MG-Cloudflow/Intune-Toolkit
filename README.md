@@ -49,7 +49,7 @@ The Intune Toolkit is a PowerShell-based solution designed to simplify the manag
   - Visual distinction and safety locks (read-only) to prevent accidental changes during search context.
 - **Advanced Policy Management:**
   - **Delete Policies:** Ability to hard delete policies (requires "Advanced Actions" toggle).
-  - **Edit DisplayName & Description:** Easily edit your policy/app names and descriptions.
+  - **Edit DisplayName & Description:** Easily edit names/descriptions for a single policy/app, or bulk rename selected items using find/replace.
 - **Refresh:** Update and refresh your security groups and policies/apps.
 - **Logging:** Detailed logging for all major actions and error handling.
 
