@@ -265,7 +265,9 @@ $RenameButton.Add_Click({
                     $renamedCount++
                 } catch {
                     $failedCount++
-                    Write-IntuneToolkitLog "Failed bulk rename for policy/application $($selectedPolicy.PolicyId): '$currentName' -> '$newName'. Error: $($_.Exception.Message)" -component "Rename-Button" -file "RenameButton.ps1"
+                    $currentNameLogValue = if ([string]::IsNullOrEmpty($currentName)) { "<unavailable>" } else { $currentName }
+                    $newNameLogValue = if ([string]::IsNullOrEmpty($newName)) { "<unavailable>" } else { $newName }
+                    Write-IntuneToolkitLog "Failed bulk rename for policy/application $($selectedPolicy.PolicyId): '$currentNameLogValue' -> '$newNameLogValue'. Error: $($_.Exception.Message)" -component "Rename-Button" -file "RenameButton.ps1"
                 }
             }
 
