@@ -227,12 +227,15 @@ $RenameButton.Add_Click({
             $failedCount = 0
 
             foreach ($selectedPolicy in $selectedPolicies) {
+                $currentName = $null
+                $newName = $null
                 try {
                     $policyId = $selectedPolicy.PolicyId
                     $policyDetails = Get-PolicyDetails -policyId $policyId
                     $currentName = $policyDetails.$propertyToUpdate
 
                     if ([string]::IsNullOrEmpty($currentName)) {
+                        Write-IntuneToolkitLog "Skipping bulk rename for policy/application $policyId because name property '$propertyToUpdate' is empty." -component "Rename-Button" -file "RenameButton.ps1"
                         $skippedCount++
                         continue
                     }
@@ -262,7 +265,7 @@ $RenameButton.Add_Click({
                     $renamedCount++
                 } catch {
                     $failedCount++
-                    Write-IntuneToolkitLog "Failed bulk rename for policy/application $($selectedPolicy.PolicyId): $($_.Exception.Message)" -component "Rename-Button" -file "RenameButton.ps1"
+                    Write-IntuneToolkitLog "Failed bulk rename for policy/application $($selectedPolicy.PolicyId): '$currentName' -> '$newName'. Error: $($_.Exception.Message)" -component "Rename-Button" -file "RenameButton.ps1"
                 }
             }
 
