@@ -25,12 +25,17 @@ $ShowUnassignedButton.Add_Checked({
     try {
         Write-IntuneToolkitLog "ShowUnassignedButton checked" -component "ShowUnassigned-Button" -file "ShowUnassignedButton.ps1"
 
-        if (-not $global:AllPolicyData) {
+        if ($null -eq $global:AllPolicyData) {
             Write-IntuneToolkitLog "No policy data loaded; nothing to filter" -component "ShowUnassigned-Button" -file "ShowUnassignedButton.ps1"
             return
         }
 
-        $unassigned = @($global:AllPolicyData | Where-Object { [string]::IsNullOrWhiteSpace($_.GroupDisplayname) })
+        $unassigned = @(
+            $global:AllPolicyData | Where-Object {
+                ([string]::IsNullOrWhiteSpace($_.AssignmentType) -or $_.AssignmentType -eq "Not Assigned") -and
+                [string]::IsNullOrWhiteSpace($_.GroupDisplayname)
+            }
+        )
         $PolicyDataGrid.ItemsSource = $unassigned
         $PolicyDataGrid.Items.Refresh()
 
