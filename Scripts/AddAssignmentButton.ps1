@@ -22,6 +22,37 @@ $AddAssignmentButton.Add_Click({
 })
 #>
 
+#--------------------------------------------------------------------------------
+# Helper: Test-SameAssignmentTarget
+# Returns $true when an existing Graph assignment targets the same audience as the
+# assignment the user is adding. Used so that re-adding an already-assigned target
+# (for example, to add an include filter to an existing "All Devices" assignment)
+# updates that assignment instead of being silently ignored by Graph as a duplicate
+# target (issue #57).
+#
+# "All Users" / "All Devices" are virtual targets with no groupId, so they are matched
+# on their @odata.type alone; group include/exclude targets are matched on both the
+# @odata.type and the groupId.
+#--------------------------------------------------------------------------------
+function Test-SameAssignmentTarget {
+    param (
+        [Parameter(Mandatory = $true)] $ExistingTarget,
+        [Parameter(Mandatory = $true)] $NewTarget
+    )
+
+    $existingType = [string]$ExistingTarget.'@odata.type'
+    $newType      = [string]$NewTarget.'@odata.type'
+    if ($existingType -ne $newType) { return $false }
+
+    if ($existingType -eq "#microsoft.graph.groupAssignmentTarget" -or
+        $existingType -eq "#microsoft.graph.exclusionGroupAssignmentTarget") {
+        return ([string]$ExistingTarget.groupId -eq [string]$NewTarget.groupId)
+    }
+
+    # All Users / All Devices (and any other group-less target) match on type alone.
+    return $true
+}
+
 $AddAssignmentButton.Add_Click({
     # Log the button click event.
     Write-IntuneToolkitLog "AddAssignmentButton clicked" -component "AddAssignment-Button" -file "AddAssignmentButton.ps1"
@@ -239,6 +270,14 @@ $AddAssignmentButton.Add_Click({
                 # Build the target object with the proper OData type.
                 $target = @{ '@odata.type' = $targetType }
                 if ($groupId) { $target.groupId = $groupId }
+
+                # Issue #57: if this policy already has an assignment for the same target,
+                # drop the existing one so the new selection (which may add or change a
+                # filter / intent) replaces it, instead of being ignored by Graph as a
+                # duplicate target. This is what lets an assignment be "edited" (e.g. adding
+                # an include filter to an existing All Devices assignment) without having to
+                # delete and re-create it.
+                $currentAssignments = @($currentAssignments | Where-Object { -not (Test-SameAssignmentTarget -ExistingTarget $_.target -NewTarget $target) })
 
                 # Build the new assignment based on the policy type.
                 if ($global:CurrentPolicyType -eq "mobileApps") {
