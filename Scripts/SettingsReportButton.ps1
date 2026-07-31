@@ -153,7 +153,8 @@ $SettingsReportButton.Add_Click({
                         if ($overview) { $md += $overview } else { $md += '- No settings shared across multiple policies.' }
                         $md += @('', '| Policy Name | Setting | Description | Value |', '|-------------|---------|-------------|-------|')
                         foreach ($r in $reportItems) {
-                            $md += "| $($r.PolicyName) | $($r.Setting) | $($r.Description) | $($r.ConfiguredValue) |"
+                            # Issue #54: render each policy / value on its own line inside the cell.
+                            $md += "| $($r.PolicyName -replace '; ','<br>') | $($r.Setting) | $($r.Description) | $($r.ConfiguredValue -replace '; ','<br>') |"
                         }
                         $md -join "`r`n" | Out-File -FilePath $dlg.FileName -Encoding UTF8
                     }
@@ -196,11 +197,11 @@ $SettingsReportButton.Add_Click({
                                                                                                 $uniqPct = _pct $uniqueCount $totalSettings
 
                                                                                                 $rowsHtml = foreach($r in $reportItems){
-                                                                                                        $policyEsc  = [System.Web.HttpUtility]::HtmlEncode($r.PolicyName)
+                                                                                                        $policyEsc  = (($r.PolicyName -split '; ') | ForEach-Object { [System.Web.HttpUtility]::HtmlEncode($_) }) -join '<br>'  # issue #54: split then encode so one policy per line (keeps &amp; intact)
                                                                                                         $settingEsc = [System.Web.HttpUtility]::HtmlEncode($r.Setting)
                                                                                                         $descRaw    = if($r.Description){ $r.Description } else { '' }
                                                                                                         $descEsc    = [System.Web.HttpUtility]::HtmlEncode(($descRaw -replace "`r?`n"," "))
-                                                                                                        $valEsc     = [System.Web.HttpUtility]::HtmlEncode($r.ConfiguredValue)
+                                                                                                        $valEsc     = (($r.ConfiguredValue -split '; ') | ForEach-Object { [System.Web.HttpUtility]::HtmlEncode($_) }) -join '<br>'  # issue #54: one configured value per line
                                                                                                         $platEsc    = [System.Web.HttpUtility]::HtmlEncode($r.Platform)
                                                                                                         $tagsHtml   = ''
                                                                                                         $dataTags   = ''
